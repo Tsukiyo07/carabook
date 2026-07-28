@@ -1,387 +1,351 @@
-// UI Elements
-const searchInput = document.getElementById('searchInput');
-const searchBtn = document.getElementById('searchBtn');
-const resultsSection = document.getElementById('resultsSection');
-const detailsSection = document.getElementById('detailsSection');
-const insightsSection = document.getElementById('insightsSection');
-const backBtn = document.getElementById('backBtn');
-const generateBtn = document.getElementById('generateBtn');
-const loadingStatus = document.getElementById('loadingStatus');
-
-// Modals & Settings
-const settingsBtn = document.getElementById('settingsBtn');
-const settingsModal = document.getElementById('settingsModal');
-const closeModalBtn = document.getElementById('closeModalBtn');
-const saveSettingsBtn = document.getElementById('saveSettingsBtn');
-const geminiKeyInput = document.getElementById('geminiKey');
-const geminiModelInput = document.getElementById('geminiModel');
-const elevenlabsKeyInput = document.getElementById('elevenlabsKey');
-const voiceSelectInput = document.getElementById('voiceSelect');
-
-// Detail Elements
-const detailCover = document.getElementById('detailCover');
-const detailTitle = document.getElementById('detailTitle');
-const detailAuthor = document.getElementById('detailAuthor');
-const detailDescription = document.getElementById('detailDescription');
-
-// Player Elements
-const audioElement = document.getElementById('audioElement');
-const scriptContent = document.getElementById('scriptContent');
-const playerBookTitle = document.getElementById('playerBookTitle');
-const audioVisualizer = document.getElementById('audioVisualizer');
-
-// State
+// App State
 let currentBook = null;
+let currentInsights = null;
 let apiKeys = {
     gemini: '',
     geminiModel: 'gemini-3.6-flash',
     elevenlabs: '',
-    voiceId: 'IKne3meq5aSn9XLyUdCD' // Charlie default voice (plus naturel)
+    voiceId: 'IKne3meq5aSn9XLyUdCD'
 };
 
-// --- Settings Management ---
+// UI Elements
+const views = document.querySelectorAll('.view');
+const navItems = document.querySelectorAll('.nav-item');
+const searchInput = document.getElementById('searchInput');
+const searchBtn = document.getElementById('searchBtn');
+const searchResults = document.getElementById('searchResults');
+const bookModal = document.getElementById('bookModal');
+const readerModal = document.getElementById('readerModal');
+
+// Init
+window.addEventListener('DOMContentLoaded', () => {
+    loadSettings();
+    loadHomeData();
+});
+
+// --- Tab Navigation ---
+function switchTab(targetId) {
+    views.forEach(v => v.classList.remove('active'));
+    document.getElementById(`view-${targetId}`).classList.add('active');
+    
+    navItems.forEach(n => {
+        n.classList.remove('active');
+        if (n.dataset.target === targetId) n.classList.add('active');
+    });
+}
+
+navItems.forEach(item => {
+    item.addEventListener('click', (e) => {
+        e.preventDefault();
+        switchTab(item.dataset.target);
+    });
+});
+
+// --- Settings ---
 function loadSettings() {
     const saved = localStorage.getItem('carabook_settings');
     if (saved) {
         apiKeys = JSON.parse(saved);
-        geminiKeyInput.value = apiKeys.gemini || '';
-        if (geminiModelInput) geminiModelInput.value = apiKeys.geminiModel || 'gemini-3.6-flash';
-        elevenlabsKeyInput.value = apiKeys.elevenlabs || '';
-        voiceSelectInput.value = apiKeys.voiceId || 'IKne3meq5aSn9XLyUdCD';
+        document.getElementById('geminiKey').value = apiKeys.gemini || '';
+        document.getElementById('geminiModel').value = apiKeys.geminiModel || 'gemini-3.6-flash';
+        document.getElementById('elevenlabsKey').value = apiKeys.elevenlabs || '';
+        document.getElementById('voiceSelect').value = apiKeys.voiceId || 'IKne3meq5aSn9XLyUdCD';
     }
 }
 
-function saveSettings() {
+document.getElementById('saveSettingsBtn').addEventListener('click', () => {
     apiKeys = {
-        gemini: geminiKeyInput.value.trim(),
-        geminiModel: geminiModelInput ? geminiModelInput.value : 'gemini-3.6-flash',
-        elevenlabs: elevenlabsKeyInput.value.trim(),
-        voiceId: voiceSelectInput.value.trim() || 'IKne3meq5aSn9XLyUdCD'
+        gemini: document.getElementById('geminiKey').value.trim(),
+        geminiModel: document.getElementById('geminiModel').value,
+        elevenlabs: document.getElementById('elevenlabsKey').value.trim(),
+        voiceId: document.getElementById('voiceSelect').value.trim() || 'IKne3meq5aSn9XLyUdCD'
     };
     localStorage.setItem('carabook_settings', JSON.stringify(apiKeys));
-    settingsModal.classList.add('hidden');
+    document.getElementById('settingsModal').classList.add('hidden');
+});
+
+document.getElementById('settingsBtn').addEventListener('click', () => document.getElementById('settingsModal').classList.remove('hidden'));
+document.getElementById('closeSettingsBtn').addEventListener('click', () => document.getElementById('settingsModal').classList.add('hidden'));
+
+// --- Home Data (Fake Trending) ---
+async function loadHomeData() {
+    // Just fetch some standard queries for home screen
+    fetchCarouselData('steve jobs', 'featuredBook', true);
+    fetchCarouselData('bestseller', 'trendingBooks');
+    fetchCarouselData('psychology', 'selfHelpBooks');
 }
 
-settingsBtn.addEventListener('click', () => settingsModal.classList.remove('hidden'));
-closeModalBtn.addEventListener('click', () => settingsModal.classList.add('hidden'));
-saveSettingsBtn.addEventListener('click', saveSettings);
-
-// --- OpenLibrary Books Search ---
-async function searchBooks(query) {
-    if (!query) return;
-    resultsSection.innerHTML = '<div class="spinner" style="margin: 0 auto;"></div>';
-    resultsSection.classList.remove('hidden');
-    detailsSection.classList.add('hidden');
-    insightsSection.classList.add('hidden');
-
+async function fetchCarouselData(query, containerId, isFeatured = false) {
     try {
-        // Using OpenLibrary API which is completely free and doesn't have strict rate limits like Google Books
-        const response = await fetch(`https://openlibrary.org/search.json?q=${encodeURIComponent(query)}&limit=8`);
-        if (!response.ok) throw new Error("Erreur serveur API");
-        const data = await response.json();
+        const res = await fetch(`https://openlibrary.org/search.json?q=${encodeURIComponent(query)}&limit=${isFeatured ? 1 : 5}&language=fre`);
+        const data = await res.json();
+        const container = document.getElementById(containerId);
+        container.innerHTML = '';
         
-        resultsSection.innerHTML = '';
+        data.docs.forEach(item => {
+            if (!item.title) return;
+            const coverUrl = item.cover_i ? `https://covers.openlibrary.org/b/id/${item.cover_i}-L.jpg` : 'https://via.placeholder.com/300x450?text=Pas+de+couverture';
+            const authors = item.author_name ? item.author_name.join(', ') : 'Auteur inconnu';
+            
+            if (isFeatured) {
+                container.innerHTML = `
+                    <img src="${coverUrl}" alt="Cover">
+                    <div class="featured-info">
+                        <h3>${item.title}</h3>
+                        <p>${authors}</p>
+                    </div>
+                `;
+                container.onclick = () => openBookDetails(item, coverUrl, authors);
+            } else {
+                const card = document.createElement('div');
+                card.className = 'book-card-mini';
+                card.innerHTML = `
+                    <img src="${coverUrl}" alt="Cover">
+                    <h4>${item.title}</h4>
+                    <p>${authors}</p>
+                `;
+                card.onclick = () => openBookDetails(item, coverUrl, authors);
+                container.appendChild(card);
+            }
+        });
+    } catch (e) {
+        console.error(e);
+    }
+}
+
+// --- Search ---
+searchBtn.addEventListener('click', () => doSearch(searchInput.value));
+searchInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') doSearch(searchInput.value); });
+
+async function doSearch(query) {
+    if (!query) return;
+    searchResults.innerHTML = '<div class="spinner" style="margin: 3rem auto;"></div>';
+    
+    try {
+        const res = await fetch(`https://openlibrary.org/search.json?q=${encodeURIComponent(query)}&limit=10`);
+        const data = await res.json();
         
-        if (!data.docs || data.docs.length === 0) {
-            resultsSection.innerHTML = '<p>Aucun livre trouvé.</p>';
+        searchResults.innerHTML = '';
+        if (data.docs.length === 0) {
+            searchResults.innerHTML = '<div class="empty-state"><p>Aucun résultat.</p></div>';
             return;
         }
 
         data.docs.forEach(item => {
             if (!item.title) return;
-
-            // OpenLibrary Covers
-            const coverUrl = item.cover_i 
-                ? `https://covers.openlibrary.org/b/id/${item.cover_i}-M.jpg` 
-                : 'https://via.placeholder.com/128x192?text=Pas+de+couverture';
-                
-            const authors = item.author_name ? item.author_name.join(', ') : 'Auteur inconnu';
+            const coverUrl = item.cover_i ? `https://covers.openlibrary.org/b/id/${item.cover_i}-M.jpg` : 'https://via.placeholder.com/128x192?text=No+Cover';
+            const authors = item.author_name ? item.author_name.join(', ') : 'Inconnu';
             
             const card = document.createElement('div');
-            card.className = 'book-card';
+            card.style.background = 'var(--bg-card)';
+            card.style.borderRadius = 'var(--radius-md)';
+            card.style.overflow = 'hidden';
+            card.style.cursor = 'pointer';
+            
             card.innerHTML = `
-                <img src="${coverUrl}" alt="${item.title}">
-                <div class="card-info">
-                    <h4>${item.title}</h4>
-                    <p>${authors}</p>
+                <img src="${coverUrl}" style="width:100%; height:200px; object-fit:cover;">
+                <div style="padding:1rem;">
+                    <h4 style="font-size:1rem; margin-bottom:0.2rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${item.title}</h4>
+                    <p style="font-size:0.8rem; color:var(--text-secondary);">${authors}</p>
                 </div>
             `;
-            
-            // On click, we will fetch full details to get the description
-            card.addEventListener('click', () => fetchAndShowBookDetails(item, coverUrl, authors));
-            resultsSection.appendChild(card);
+            card.onclick = () => openBookDetails(item, coverUrl, authors);
+            searchResults.appendChild(card);
         });
-
-    } catch (error) {
-        resultsSection.innerHTML = `<p style="color: red;">Erreur lors de la recherche : ${error.message}</p>`;
+    } catch (e) {
+        searchResults.innerHTML = '<p>Erreur.</p>';
     }
 }
 
-searchBtn.addEventListener('click', () => searchBooks(searchInput.value));
-searchInput.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') searchBooks(searchInput.value);
-});
-
-// --- Book Details ---
-async function fetchAndShowBookDetails(item, coverUrl, authors) {
-    // Generate a default description, or attempt to fetch from works API
-    let description = "Description non fournie par la base de données. L'IA générera le résumé en se basant sur le titre et l'auteur.";
+// --- Book Details Modal ---
+async function openBookDetails(item, coverUrl, authors) {
+    document.getElementById('modalCover').src = coverUrl;
+    document.getElementById('modalTitle').textContent = item.title;
+    document.getElementById('modalAuthor').textContent = authors;
+    document.getElementById('modalDescription').textContent = "Chargement de la description...";
     
-    // Attempt to fetch detailed description from OpenLibrary Works API
+    currentBook = { title: item.title, authors: authors, description: "" };
+    bookModal.classList.remove('hidden');
+
     try {
         if (item.key) {
             const res = await fetch(`https://openlibrary.org${item.key}.json`);
             if (res.ok) {
-                const detailedData = await res.json();
-                if (detailedData.description) {
-                    description = typeof detailedData.description === 'string' 
-                        ? detailedData.description 
-                        : (detailedData.description.value || description);
-                }
+                const data = await res.json();
+                let desc = typeof data.description === 'string' ? data.description : (data.description?.value || "L'IA générera un résumé basé sur le titre.");
+                document.getElementById('modalDescription').textContent = desc.substring(0, 300) + '...';
+                currentBook.description = desc;
             }
         }
-    } catch(e) {
-        console.warn("Could not fetch detailed description", e);
-    }
-
-    currentBook = {
-        title: item.title,
-        authors: authors,
-        description: description
-    };
-    
-    detailCover.src = coverUrl;
-    detailTitle.textContent = item.title;
-    detailAuthor.textContent = authors;
-    detailDescription.textContent = description;
-    
-    resultsSection.classList.add('hidden');
-    detailsSection.classList.remove('hidden');
-    document.getElementById('insightsSection').classList.add('hidden');
-    generateBtn.classList.remove('hidden');
-    loadingStatus.classList.add('hidden');
+    } catch(e) {}
 }
 
-backBtn.addEventListener('click', () => {
-    detailsSection.classList.add('hidden');
-    resultsSection.classList.remove('hidden');
+document.getElementById('closeBookModal').addEventListener('click', () => {
+    bookModal.classList.add('hidden');
 });
 
-// --- Generation Process ---
-generateBtn.addEventListener('click', async () => {
+// --- AI Generation & Reader ---
+document.getElementById('generateBtn').addEventListener('click', async () => {
     if (!apiKeys.gemini || !apiKeys.elevenlabs) {
-        alert("Veuillez renseigner vos clés API Gemini et ElevenLabs dans les paramètres.");
-        settingsModal.classList.remove('hidden');
+        alert("Veuillez renseigner vos clés API dans les paramètres.");
+        document.getElementById('settingsModal').classList.remove('hidden');
         return;
     }
 
-    generateBtn.classList.add('hidden');
-    loadingStatus.classList.remove('hidden');
-    document.getElementById('insightsSection').classList.add('hidden');
+    document.getElementById('generateBtn').classList.add('hidden');
+    document.getElementById('loadingStatus').classList.remove('hidden');
 
     try {
-        // 1. Generate JSON Script via Gemini
-        document.getElementById('statusText').textContent = "Génération des insights (Gemini)...";
-        const insightsData = await generateScriptWithGemini(currentBook);
+        const insightsData = await generateInsights(currentBook);
+        currentInsights = insightsData;
+        buildReader(insightsData, currentBook);
         
-        // 2. Build UI
-        buildInsightsUI(insightsData, currentBook);
-
-        loadingStatus.classList.add('hidden');
-        document.getElementById('insightsSection').classList.remove('hidden');
+        document.getElementById('loadingStatus').classList.add('hidden');
+        document.getElementById('generateBtn').classList.remove('hidden');
         
-    } catch (error) {
-        alert(`Erreur lors de la génération : ${error.message}`);
-        generateBtn.classList.remove('hidden');
-        loadingStatus.classList.add('hidden');
+        bookModal.classList.add('hidden');
+        readerModal.classList.remove('hidden');
+    } catch (e) {
+        alert("Erreur: " + e.message);
+        document.getElementById('loadingStatus').classList.add('hidden');
+        document.getElementById('generateBtn').classList.remove('hidden');
     }
 });
 
-function buildInsightsUI(data, book) {
-    document.getElementById('insightsBookTitle').textContent = book.title;
-    document.getElementById('insightsIntro').textContent = data.introduction || "Découvrez les concepts clés de ce livre.";
-    
-    const container = document.getElementById('insightsContainer');
-    container.innerHTML = ''; // Clear previous
-
-    if (!data.insights || !Array.isArray(data.insights)) return;
-
-    data.insights.forEach((insight, index) => {
-        const card = document.createElement('div');
-        card.className = 'insight-card';
-        
-        // Takeaways list
-        let takeawaysHTML = '';
-        if (insight.takeaways && insight.takeaways.length > 0) {
-            takeawaysHTML = `
-                <div class="insight-takeaways">
-                    <h5>À retenir</h5>
-                    <ul>
-                        ${insight.takeaways.map(t => `<li>${t}</li>`).join('')}
-                    </ul>
-                </div>
-            `;
-        }
-
-        card.innerHTML = `
-            <div class="insight-header">
-                <h3 class="insight-title">${index + 1}. ${insight.title}</h3>
-                <button class="play-insight-btn" data-index="${index}" title="Écouter ce chapitre">
-                    <i class="fa-solid fa-play"></i>
-                </button>
-            </div>
-            <div class="insight-text">${insight.text}</div>
-            ${takeawaysHTML}
-        `;
-        
-        // Setup play button logic for this specific insight
-        const playBtn = card.querySelector('.play-insight-btn');
-        playBtn.addEventListener('click', () => playInsightAudio(insight, card, playBtn));
-        
-        container.appendChild(card);
-    });
-}
-
-// Map to store generated audio blobs to avoid regenerating
-const audioCache = new Map();
-
-async function playInsightAudio(insight, cardElement, btnElement) {
+document.getElementById('closeReaderBtn').addEventListener('click', () => {
+    readerModal.classList.add('hidden');
     const globalAudio = document.getElementById('globalAudioElement');
-    const icon = btnElement.querySelector('i');
+    globalAudio.pause();
+});
 
-    // If currently playing this card, pause it
-    if (cardElement.classList.contains('playing') && !globalAudio.paused) {
-        globalAudio.pause();
-        icon.className = 'fa-solid fa-play';
-        cardElement.classList.remove('playing');
-        return;
-    }
-
-    // Reset all other cards
-    document.querySelectorAll('.insight-card').forEach(c => {
-        c.classList.remove('playing');
-        c.querySelector('.play-insight-btn i').className = 'fa-solid fa-play';
-    });
-
-    cardElement.classList.add('playing');
-    icon.className = 'fa-solid fa-spinner fa-spin'; // Loading state
-
-    try {
-        let audioUrl;
-        
-        // Check cache first
-        if (audioCache.has(insight.title)) {
-            audioUrl = audioCache.get(insight.title);
-        } else {
-            // Generate audio
-            const audioBlob = await generateAudioWithElevenLabs(insight.text);
-            audioUrl = URL.createObjectURL(audioBlob);
-            audioCache.set(insight.title, audioUrl);
-        }
-
-        globalAudio.src = audioUrl;
-        await globalAudio.play();
-        icon.className = 'fa-solid fa-pause';
-        
-        globalAudio.onended = () => {
-            cardElement.classList.remove('playing');
-            icon.className = 'fa-solid fa-play';
-        };
-        globalAudio.onpause = () => {
-            icon.className = 'fa-solid fa-play';
-        };
-
-    } catch (error) {
-        alert("Erreur audio: " + error.message);
-        cardElement.classList.remove('playing');
-        icon.className = 'fa-solid fa-play';
-    }
-}
-
-// --- API Calls ---
-
-async function generateScriptWithGemini(bookInfo) {
-    const prompt = `Tu es un expert qui crée des résumés de livres d'excellente qualité, structurés pour une application mobile premium (style StoryShots).
-    Analyse le livre suivant et extrais 3 à 5 "Insights" (idées/chapitres clés).
-    
-    Livre: ${bookInfo.title}
-    Auteur: ${bookInfo.authors || 'Inconnu'}
-    Description: ${bookInfo.description || 'Pas de description'}
+async function generateInsights(book) {
+    const prompt = `Tu es une application mobile premium de résumés de livres.
+    Analyse ce livre et donne-moi 3 à 5 Insights clés.
+    Livre: ${book.title}
+    Auteur: ${book.authors}
+    Description: ${book.description}
     
     Tu DOIS répondre EXCLUSIVEMENT avec un objet JSON valide, sans balises markdown autour (pas de \`\`\`json).
-    Le format JSON doit être exactement celui-ci :
+    Format :
     {
-      "introduction": "Une phrase d'accroche captivante sur le livre.",
+      "introduction": "Phrase d'accroche",
       "insights": [
         {
-          "title": "Titre accrocheur du chapitre/concept",
-          "text": "Le texte du script narratif (environ 100 mots) expliquant ce concept. Parle d'une voix dynamique et orale, sans didascalies.",
-          "takeaways": [
-            "Point clé à retenir 1",
-            "Point clé à retenir 2"
-          ]
+          "title": "Titre du chapitre",
+          "text": "Script oral d'environ 100 mots.",
+          "takeaways": ["Point 1", "Point 2"]
         }
       ]
     }`;
 
-    const modelToUse = apiKeys.geminiModel || 'gemini-3.6-flash';
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelToUse}:generateContent?key=${apiKeys.gemini}`, {
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${apiKeys.geminiModel}:generateContent?key=${apiKeys.gemini}`, {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
             contents: [{ parts: [{ text: prompt }] }],
-            generationConfig: {
-                temperature: 0.7
-            }
+            generationConfig: { temperature: 0.7 }
         })
     });
 
-    if (!response.ok) {
-        const err = await response.json();
-        throw new Error(err.error?.message || "Erreur Gemini API");
-    }
-
+    if (!response.ok) throw new Error("Erreur API Gemini");
     const data = await response.json();
-    const parts = data.candidates[0].content.parts;
-    const rawText = parts.map(p => p.text).join('');
+    const rawText = data.candidates[0].content.parts.map(p => p.text).join('');
     
     try {
-        // Clean markdown backticks if Gemini still added them
-        const cleanedText = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
-        return JSON.parse(cleanedText);
+        const cleaned = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
+        return JSON.parse(cleaned);
     } catch (e) {
-        console.error("Erreur de parsing JSON:", rawText);
-        throw new Error("L'IA n'a pas renvoyé un format valide. Veuillez réessayer.");
+        throw new Error("L'IA a mal formaté la réponse.");
     }
 }
 
-async function generateAudioWithElevenLabs(text) {
-    const voiceId = apiKeys.voiceId || 'IKne3meq5aSn9XLyUdCD';
-    const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}?output_format=mp3_44100_128`, {
-        method: 'POST',
-        headers: {
-            'Accept': 'audio/mpeg',
-            'xi-api-key': apiKeys.elevenlabs,
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-            text: text,
-            model_id: 'eleven_multilingual_v2',
-            voice_settings: {
-                stability: 0.35, // Plus bas = plus naturel et expressif
-                similarity_boost: 0.85
-            }
-        })
+function buildReader(data, book) {
+    document.getElementById('readerBookTitle').textContent = book.title;
+    document.getElementById('readerIntro').textContent = data.introduction;
+    
+    const container = document.getElementById('insightsContainer');
+    container.innerHTML = '';
+    
+    data.insights.forEach((insight, i) => {
+        const div = document.createElement('div');
+        div.className = 'insight-item';
+        div.innerHTML = `
+            <h3>${i+1}. ${insight.title}</h3>
+            <p>${insight.text}</p>
+            <div class="takeaways">
+                <h5>À retenir</h5>
+                <ul>${insight.takeaways.map(t => `<li>${t}</li>`).join('')}</ul>
+            </div>
+            <button class="primary-btn-large" style="margin-top:1.5rem;" onclick="playAudioForInsight(${i})">
+                <i class="fa-solid fa-play"></i> Écouter ce passage
+            </button>
+        `;
+        container.appendChild(div);
     });
-
-    if (!response.ok) {
-        throw new Error(`Erreur ElevenLabs API (${response.status})`);
-    }
-
-    return await response.blob();
 }
 
-// Init
-loadSettings();
+// --- Audio Player Logic ---
+const audioCache = new Map();
+let currentPlayingIndex = -1;
+
+async function playAudioForInsight(index) {
+    const insight = currentInsights.insights[index];
+    const globalAudio = document.getElementById('globalAudioElement');
+    const stickyPlayer = document.getElementById('stickyPlayer');
+    const playPauseBtn = document.getElementById('playerPlayPauseBtn');
+    
+    document.getElementById('playerInsightTitle').textContent = insight.title;
+    stickyPlayer.classList.remove('hidden');
+    playPauseBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+    
+    if (currentPlayingIndex === index && !globalAudio.paused) {
+        globalAudio.pause();
+        return;
+    }
+    
+    currentPlayingIndex = index;
+    
+    try {
+        if (!audioCache.has(insight.title)) {
+            const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${apiKeys.voiceId}?output_format=mp3_44100_128`, {
+                method: 'POST',
+                headers: { 'Accept': 'audio/mpeg', 'xi-api-key': apiKeys.elevenlabs, 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    text: insight.text,
+                    model_id: 'eleven_multilingual_v2',
+                    voice_settings: { stability: 0.35, similarity_boost: 0.85 }
+                })
+            });
+            if (!res.ok) throw new Error("Erreur ElevenLabs");
+            const blob = await res.blob();
+            audioCache.set(insight.title, URL.createObjectURL(blob));
+        }
+        
+        globalAudio.src = audioCache.get(insight.title);
+        await globalAudio.play();
+    } catch (e) {
+        alert(e.message);
+        playPauseBtn.innerHTML = '<i class="fa-solid fa-play"></i>';
+    }
+}
+
+const globalAudio = document.getElementById('globalAudioElement');
+const playPauseBtn = document.getElementById('playerPlayPauseBtn');
+const visualizer = document.getElementById('audioVisualizer');
+
+globalAudio.addEventListener('play', () => {
+    playPauseBtn.innerHTML = '<i class="fa-solid fa-pause"></i>';
+    visualizer.classList.remove('hidden');
+});
+globalAudio.addEventListener('pause', () => {
+    playPauseBtn.innerHTML = '<i class="fa-solid fa-play"></i>';
+    visualizer.classList.add('hidden');
+});
+globalAudio.addEventListener('ended', () => {
+    playPauseBtn.innerHTML = '<i class="fa-solid fa-play"></i>';
+    visualizer.classList.add('hidden');
+});
+playPauseBtn.addEventListener('click', () => {
+    if (globalAudio.paused) globalAudio.play();
+    else globalAudio.pause();
+});
