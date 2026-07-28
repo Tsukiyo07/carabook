@@ -597,6 +597,20 @@ globalAudio.addEventListener('pause', () => {
     }
 });
 
+globalAudio.addEventListener('error', (e) => {
+    console.error("Audio Load Error:", globalAudio.error);
+    alert("Impossible de charger l'audio. Google a peut-être bloqué la requête.");
+    playPauseBtn.innerHTML = '<i class="fa-solid fa-play"></i>';
+    visualizer.classList.add('hidden');
+    if (playingBookContext) {
+        const trackDiv = document.getElementById(`track-${playingBookContext.playingIndex}`);
+        if (trackDiv) {
+            const icon = trackDiv.querySelector('.track-status i');
+            if (icon) icon.className = 'fa-solid fa-play';
+        }
+    }
+});
+
 playPauseBtn.addEventListener('click', () => {
     if (globalAudio.paused) globalAudio.play();
     else globalAudio.pause();
