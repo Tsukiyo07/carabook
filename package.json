@@ -3,7 +3,5 @@
   "version": "1.0.0",
   "description": "CaraBook",
   "main": "app2.js",
-  "dependencies": {
-    "google-tts-api": "^2.0.2"
-  }
+  "dependencies": {}
 }
