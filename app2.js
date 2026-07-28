@@ -565,6 +565,12 @@ globalAudio.addEventListener('timeupdate', () => {
         saveHistory();
         lastSaveTime = now;
     }
+    const percent = (globalAudio.currentTime / globalAudio.duration) * 100;
+    if (!isNaN(percent)) {
+        if (globalProgressFill) globalProgressFill.style.width = percent + '%';
+        const stickyFill = document.getElementById('stickyProgressFill');
+        if (stickyFill) stickyFill.style.width = percent + '%';
+    }
 });
 
 globalAudio.addEventListener('ended', () => {
@@ -598,16 +604,43 @@ globalAudio.addEventListener('pause', () => {
 });
 
 globalAudio.addEventListener('error', (e) => {
-    console.error("Audio Load Error:", globalAudio.error);
-    alert("Impossible de charger l'audio. Google a peut-être bloqué la requête.");
-    playPauseBtn.innerHTML = '<i class="fa-solid fa-play"></i>';
-    visualizer.classList.add('hidden');
+    console.warn("Audio Load Error with Google TTS. Falling back to native synthesis...", globalAudio.error);
+    
     if (playingBookContext) {
         const trackDiv = document.getElementById(`track-${playingBookContext.playingIndex}`);
         if (trackDiv) {
             const icon = trackDiv.querySelector('.track-status i');
-            if (icon) icon.className = 'fa-solid fa-play';
+            if (icon) icon.className = 'fa-solid fa-volume-high';
         }
+        
+        // Fallback to native synthesis
+        const insight = playingBookContext.insights[playingBookContext.playingIndex];
+        if (insight && insight.text) {
+            const utterance = new SpeechSynthesisUtterance(insight.text);
+            utterance.lang = 'fr-FR';
+            
+            utterance.onend = () => {
+                playPauseBtn.innerHTML = '<i class="fa-solid fa-play"></i>';
+                visualizer.classList.add('hidden');
+                if (trackDiv) {
+                    const icon = trackDiv.querySelector('.track-status i');
+                    if (icon) icon.className = 'fa-solid fa-check';
+                }
+                // Next track
+                if (playingBookContext.playingIndex + 1 < playingBookContext.insights.length) {
+                    playTrack(playingBookContext.playingIndex + 1);
+                }
+            };
+            
+            window.speechSynthesis.cancel();
+            window.speechSynthesis.speak(utterance);
+            playPauseBtn.innerHTML = '<i class="fa-solid fa-pause"></i>';
+            visualizer.classList.remove('hidden');
+        }
+    } else {
+        alert("Impossible de charger l'audio et la synthèse vocale a échoué.");
+        playPauseBtn.innerHTML = '<i class="fa-solid fa-play"></i>';
+        visualizer.classList.add('hidden');
     }
 });
 
