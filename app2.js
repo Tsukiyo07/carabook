@@ -36,7 +36,7 @@ let apiKeys = {
     gemini: '',
     geminiModel: 'gemini-3.6-flash',
     elevenlabs: '',
-    voiceId: 'pNInz6obpgDQGcFmaJgB' // Adam default voice
+    voiceId: 'IKne3meq5aSn9XLyUdCD' // Charlie default voice (plus naturel)
 };
 
 // --- Settings Management ---
@@ -47,7 +47,7 @@ function loadSettings() {
         geminiKeyInput.value = apiKeys.gemini || '';
         if (geminiModelInput) geminiModelInput.value = apiKeys.geminiModel || 'gemini-3.6-flash';
         elevenlabsKeyInput.value = apiKeys.elevenlabs || '';
-        voiceSelectInput.value = apiKeys.voiceId || 'pNInz6obpgDQGcFmaJgB';
+        voiceSelectInput.value = apiKeys.voiceId || 'IKne3meq5aSn9XLyUdCD';
     }
 }
 
@@ -56,7 +56,7 @@ function saveSettings() {
         gemini: geminiKeyInput.value.trim(),
         geminiModel: geminiModelInput ? geminiModelInput.value : 'gemini-3.6-flash',
         elevenlabs: elevenlabsKeyInput.value.trim(),
-        voiceId: voiceSelectInput.value.trim() || 'pNInz6obpgDQGcFmaJgB'
+        voiceId: voiceSelectInput.value.trim() || 'IKne3meq5aSn9XLyUdCD'
     };
     localStorage.setItem('carabook_settings', JSON.stringify(apiKeys));
     settingsModal.classList.add('hidden');
@@ -358,7 +358,7 @@ async function generateScriptWithGemini(bookInfo) {
 }
 
 async function generateAudioWithElevenLabs(text) {
-    const voiceId = apiKeys.voiceId || 'pNInz6obpgDQGcFmaJgB'; // Adam
+    const voiceId = apiKeys.voiceId || 'IKne3meq5aSn9XLyUdCD';
     const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}?output_format=mp3_44100_128`, {
         method: 'POST',
         headers: {
@@ -370,8 +370,8 @@ async function generateAudioWithElevenLabs(text) {
             text: text,
             model_id: 'eleven_multilingual_v2',
             voice_settings: {
-                stability: 0.5,
-                similarity_boost: 0.75
+                stability: 0.35, // Plus bas = plus naturel et expressif
+                similarity_boost: 0.85
             }
         })
     });
