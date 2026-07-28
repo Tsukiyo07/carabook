@@ -6,6 +6,7 @@ function chunkTextByWords(text, maxLength) {
     const words = text.split(/\s+/);
     
     for (const word of words) {
+        if (!word) continue;
         if ((currentChunk + ' ' + word).trim().length <= maxLength) {
             currentChunk += (currentChunk ? ' ' : '') + word;
         } else {
@@ -17,7 +18,7 @@ function chunkTextByWords(text, maxLength) {
     return chunks;
 }
 
-module.exports = async function handler(req, res) {
+export default async function handler(req, res) {
     if (req.method !== 'POST') {
         return res.status(405).json({ error: "Method not allowed" });
     }
@@ -28,8 +29,7 @@ module.exports = async function handler(req, res) {
             return res.status(400).json({ error: "Missing text" });
         }
 
-        // Custom chunking to absolutely guarantee < 200 chars per request (Google limit)
-        const safeChunks = chunkTextByWords(text, 190);
+        const safeChunks = chunkTextByWords(text, 190).filter(c => c.trim().length > 0);
         
         const urls = safeChunks.map(chunk => {
             return {
