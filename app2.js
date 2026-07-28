@@ -1,12 +1,6 @@
 // App State
 let currentBook = null;
 let currentInsights = null;
-let apiKeys = {
-    gemini: '',
-    geminiModel: 'gemini-3.6-flash',
-    elevenlabs: '',
-    voiceId: 'IKne3meq5aSn9XLyUdCD'
-};
 
 // UI Elements
 const views = document.querySelectorAll('.view');
@@ -19,7 +13,6 @@ const readerModal = document.getElementById('readerModal');
 
 // Init
 window.addEventListener('DOMContentLoaded', () => {
-    loadSettings();
     loadHomeData();
 });
 
@@ -41,35 +34,8 @@ navItems.forEach(item => {
     });
 });
 
-// --- Settings ---
-function loadSettings() {
-    const saved = localStorage.getItem('carabook_settings');
-    if (saved) {
-        apiKeys = JSON.parse(saved);
-        document.getElementById('geminiKey').value = apiKeys.gemini || '';
-        document.getElementById('geminiModel').value = apiKeys.geminiModel || 'gemini-3.6-flash';
-        document.getElementById('elevenlabsKey').value = apiKeys.elevenlabs || '';
-        document.getElementById('voiceSelect').value = apiKeys.voiceId || 'IKne3meq5aSn9XLyUdCD';
-    }
-}
-
-document.getElementById('saveSettingsBtn').addEventListener('click', () => {
-    apiKeys = {
-        gemini: document.getElementById('geminiKey').value.trim(),
-        geminiModel: document.getElementById('geminiModel').value,
-        elevenlabs: document.getElementById('elevenlabsKey').value.trim(),
-        voiceId: document.getElementById('voiceSelect').value.trim() || 'IKne3meq5aSn9XLyUdCD'
-    };
-    localStorage.setItem('carabook_settings', JSON.stringify(apiKeys));
-    document.getElementById('settingsModal').classList.add('hidden');
-});
-
-document.getElementById('settingsBtn').addEventListener('click', () => document.getElementById('settingsModal').classList.remove('hidden'));
-document.getElementById('closeSettingsBtn').addEventListener('click', () => document.getElementById('settingsModal').classList.add('hidden'));
-
 // --- Home Data (Fake Trending) ---
 async function loadHomeData() {
-    // Just fetch some standard queries for home screen
     fetchCarouselData('steve jobs', 'featuredBook', true);
     fetchCarouselData('bestseller', 'trendingBooks');
     fetchCarouselData('psychology', 'selfHelpBooks');
@@ -77,7 +43,7 @@ async function loadHomeData() {
 
 async function fetchCarouselData(query, containerId, isFeatured = false) {
     try {
-        const res = await fetch(`https://openlibrary.org/search.json?q=${encodeURIComponent(query)}&limit=${isFeatured ? 1 : 5}&language=fre`);
+        const res = await fetch(`https://openlibrary.org/search.json?q=${encodeURIComponent(query)}&limit=${isFeatured ? 1 : 10}&language=fre`);
         const data = await res.json();
         const container = document.getElementById(containerId);
         container.innerHTML = '';
@@ -100,7 +66,7 @@ async function fetchCarouselData(query, containerId, isFeatured = false) {
                 const card = document.createElement('div');
                 card.className = 'book-card-mini';
                 card.innerHTML = `
-                    <img src="${coverUrl}" alt="Cover">
+                    <img src="${coverUrl}" alt="Cover" loading="lazy">
                     <h4>${item.title}</h4>
                     <p>${authors}</p>
                 `;
@@ -109,7 +75,7 @@ async function fetchCarouselData(query, containerId, isFeatured = false) {
             }
         });
     } catch (e) {
-        console.error(e);
+        console.error("Home data error", e);
     }
 }
 
@@ -122,38 +88,32 @@ async function doSearch(query) {
     searchResults.innerHTML = '<div class="spinner" style="margin: 3rem auto;"></div>';
     
     try {
-        const res = await fetch(`https://openlibrary.org/search.json?q=${encodeURIComponent(query)}&limit=10`);
+        const res = await fetch(`https://openlibrary.org/search.json?q=${encodeURIComponent(query)}&limit=15`);
         const data = await res.json();
         
         searchResults.innerHTML = '';
         if (data.docs.length === 0) {
-            searchResults.innerHTML = '<div class="empty-state"><p>Aucun résultat.</p></div>';
+            searchResults.innerHTML = '<div class="empty-state"><p>Aucun résultat trouvé.</p></div>';
             return;
         }
 
         data.docs.forEach(item => {
             if (!item.title) return;
-            const coverUrl = item.cover_i ? `https://covers.openlibrary.org/b/id/${item.cover_i}-M.jpg` : 'https://via.placeholder.com/128x192?text=No+Cover';
+            const coverUrl = item.cover_i ? `https://covers.openlibrary.org/b/id/${item.cover_i}-M.jpg` : 'https://via.placeholder.com/150x220?text=No+Cover';
             const authors = item.author_name ? item.author_name.join(', ') : 'Inconnu';
             
             const card = document.createElement('div');
-            card.style.background = 'var(--bg-card)';
-            card.style.borderRadius = 'var(--radius-md)';
-            card.style.overflow = 'hidden';
-            card.style.cursor = 'pointer';
-            
+            card.className = 'book-card-mini';
             card.innerHTML = `
-                <img src="${coverUrl}" style="width:100%; height:200px; object-fit:cover;">
-                <div style="padding:1rem;">
-                    <h4 style="font-size:1rem; margin-bottom:0.2rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${item.title}</h4>
-                    <p style="font-size:0.8rem; color:var(--text-secondary);">${authors}</p>
-                </div>
+                <img src="${coverUrl}" loading="lazy">
+                <h4>${item.title}</h4>
+                <p>${authors}</p>
             `;
             card.onclick = () => openBookDetails(item, coverUrl, authors);
             searchResults.appendChild(card);
         });
     } catch (e) {
-        searchResults.innerHTML = '<p>Erreur.</p>';
+        searchResults.innerHTML = '<p style="color:red; text-align:center;">Erreur lors de la recherche.</p>';
     }
 }
 
@@ -162,7 +122,7 @@ async function openBookDetails(item, coverUrl, authors) {
     document.getElementById('modalCover').src = coverUrl;
     document.getElementById('modalTitle').textContent = item.title;
     document.getElementById('modalAuthor').textContent = authors;
-    document.getElementById('modalDescription').textContent = "Chargement de la description...";
+    document.getElementById('modalDescription').textContent = "Recherche des détails de l'ouvrage...";
     
     currentBook = { title: item.title, authors: authors, description: "" };
     bookModal.classList.remove('hidden');
@@ -172,8 +132,8 @@ async function openBookDetails(item, coverUrl, authors) {
             const res = await fetch(`https://openlibrary.org${item.key}.json`);
             if (res.ok) {
                 const data = await res.json();
-                let desc = typeof data.description === 'string' ? data.description : (data.description?.value || "L'IA générera un résumé basé sur le titre.");
-                document.getElementById('modalDescription').textContent = desc.substring(0, 300) + '...';
+                let desc = typeof data.description === 'string' ? data.description : (data.description?.value || "Ce livre ne possède pas de description dans la base de données. L'IA générera les insights à partir de son titre.");
+                document.getElementById('modalDescription').textContent = desc;
                 currentBook.description = desc;
             }
         }
@@ -184,14 +144,8 @@ document.getElementById('closeBookModal').addEventListener('click', () => {
     bookModal.classList.add('hidden');
 });
 
-// --- AI Generation & Reader ---
+// --- AI Generation (VIA BACKEND) ---
 document.getElementById('generateBtn').addEventListener('click', async () => {
-    if (!apiKeys.gemini || !apiKeys.elevenlabs) {
-        alert("Veuillez renseigner vos clés API dans les paramètres.");
-        document.getElementById('settingsModal').classList.remove('hidden');
-        return;
-    }
-
     document.getElementById('generateBtn').classList.add('hidden');
     document.getElementById('loadingStatus').classList.remove('hidden');
 
@@ -206,7 +160,7 @@ document.getElementById('generateBtn').addEventListener('click', async () => {
         bookModal.classList.add('hidden');
         readerModal.classList.remove('hidden');
     } catch (e) {
-        alert("Erreur: " + e.message);
+        alert("Erreur de génération : " + e.message);
         document.getElementById('loadingStatus').classList.add('hidden');
         document.getElementById('generateBtn').classList.remove('hidden');
     }
@@ -216,47 +170,42 @@ document.getElementById('closeReaderBtn').addEventListener('click', () => {
     readerModal.classList.add('hidden');
     const globalAudio = document.getElementById('globalAudioElement');
     globalAudio.pause();
+    document.getElementById('stickyPlayer').classList.add('hidden');
 });
 
 async function generateInsights(book) {
-    const prompt = `Tu es une application mobile premium de résumés de livres.
-    Analyse ce livre et donne-moi 3 à 5 Insights clés.
+    const prompt = `Tu es une application premium de résumés de livres (comme Blinkist ou StoryShots).
+    Analyse ce livre et donne-moi 3 à 5 Insights clés (idées principales).
     Livre: ${book.title}
     Auteur: ${book.authors}
     Description: ${book.description}
     
-    Tu DOIS répondre EXCLUSIVEMENT avec un objet JSON valide, sans balises markdown autour (pas de \`\`\`json).
-    Format :
+    Tu DOIS répondre EXCLUSIVEMENT avec un objet JSON valide, sans balises markdown.
+    Format attendu :
     {
-      "introduction": "Phrase d'accroche",
+      "introduction": "Phrase d'accroche captivante",
       "insights": [
         {
           "title": "Titre du chapitre",
-          "text": "Script oral d'environ 100 mots.",
-          "takeaways": ["Point 1", "Point 2"]
+          "text": "Script oral d'environ 80-100 mots. Ton passionnant et direct.",
+          "takeaways": ["Point clé 1", "Point clé 2"]
         }
       ]
     }`;
 
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${apiKeys.geminiModel}:generateContent?key=${apiKeys.gemini}`, {
+    // Appelle le backend Vercel (sécurisé)
+    const response = await fetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            contents: [{ parts: [{ text: prompt }] }],
-            generationConfig: { temperature: 0.7 }
-        })
+        body: JSON.stringify({ prompt: prompt })
     });
 
-    if (!response.ok) throw new Error("Erreur API Gemini");
-    const data = await response.json();
-    const rawText = data.candidates[0].content.parts.map(p => p.text).join('');
-    
-    try {
-        const cleaned = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
-        return JSON.parse(cleaned);
-    } catch (e) {
-        throw new Error("L'IA a mal formaté la réponse.");
+    if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.error || "Erreur serveur");
     }
+    
+    return await response.json();
 }
 
 function buildReader(data, book) {
@@ -276,15 +225,15 @@ function buildReader(data, book) {
                 <h5>À retenir</h5>
                 <ul>${insight.takeaways.map(t => `<li>${t}</li>`).join('')}</ul>
             </div>
-            <button class="primary-btn-large" style="margin-top:1.5rem;" onclick="playAudioForInsight(${i})">
-                <i class="fa-solid fa-play"></i> Écouter ce passage
+            <button class="primary-btn-large" style="margin-top:2rem;" onclick="playAudioForInsight(${i})">
+                <i class="fa-solid fa-play"></i> Écouter l'Insight
             </button>
         `;
         container.appendChild(div);
     });
 }
 
-// --- Audio Player Logic ---
+// --- Audio Player Logic (VIA BACKEND) ---
 const audioCache = new Map();
 let currentPlayingIndex = -1;
 
@@ -307,16 +256,18 @@ async function playAudioForInsight(index) {
     
     try {
         if (!audioCache.has(insight.title)) {
-            const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${apiKeys.voiceId}?output_format=mp3_44100_128`, {
+            // Appelle le backend Vercel pour masquer la clé API
+            const res = await fetch('/api/tts', {
                 method: 'POST',
-                headers: { 'Accept': 'audio/mpeg', 'xi-api-key': apiKeys.elevenlabs, 'Content-Type': 'application/json' },
-                body: JSON.stringify({
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
                     text: insight.text,
-                    model_id: 'eleven_multilingual_v2',
-                    voice_settings: { stability: 0.35, similarity_boost: 0.85 }
+                    voiceId: 'IKne3meq5aSn9XLyUdCD' // Charlie voice
                 })
             });
-            if (!res.ok) throw new Error("Erreur ElevenLabs");
+            
+            if (!res.ok) throw new Error("Erreur de génération vocale (vérifiez la clé API ElevenLabs sur Vercel)");
+            
             const blob = await res.blob();
             audioCache.set(insight.title, URL.createObjectURL(blob));
         }
