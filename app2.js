@@ -424,50 +424,80 @@ async function playTrack(index) {
     playingBookContext.playingIndex = index;
     
     try {
-        if (!audioCache.has(insight.title)) {
-            const res = await fetch('/api/tts', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ text: insight.text })
-            });
+        // Utilisation de Web Speech API (100% gratuit et illimité) au lieu de ElevenLabs
+        return new Promise((resolve, reject) => {
+            if (!window.speechSynthesis) {
+                reject(new Error("Votre navigateur ne supporte pas la synthèse vocale."));
+                return;
+            }
+
+            // Arrêter toute lecture en cours
+            window.speechSynthesis.cancel();
+
+            const utterance = new SpeechSynthesisUtterance(insight.text);
+            utterance.lang = 'fr-FR';
             
-            if (!res.ok) throw new Error("Erreur vocale (Vérifiez votre clé sur Vercel)");
-            const blob = await res.blob();
-            audioCache.set(insight.title, URL.createObjectURL(blob));
-        }
-        
-        globalAudio.src = audioCache.get(insight.title);
-        await globalAudio.play();
+            // Essayer de trouver une voix premium française (Google, Apple, Microsoft)
+            const voices = window.speechSynthesis.getVoices();
+            const frVoices = voices.filter(v => v.lang.startsWith('fr'));
+            // Préférer Google français ou Apple Thomas/Audrey si dispo
+            const premiumVoice = frVoices.find(v => v.name.includes('Google') || v.name.includes('Thomas') || v.name.includes('Audrey'));
+            if (premiumVoice) {
+                utterance.voice = premiumVoice;
+            } else if (frVoices.length > 0) {
+                utterance.voice = frVoices[0];
+            }
+
+            utterance.onstart = () => {
+                visualizer.classList.remove('hidden');
+            };
+
+            utterance.onend = () => {
+                visualizer.classList.add('hidden');
+                
+                if (playingBookContext) {
+                    saveProgress(playingBookContext.book.title, insight.title);
+                    if (playingBookContext.playingIndex + 1 < playingBookContext.insights.length) {
+                        playTrack(playingBookContext.playingIndex + 1);
+                    } else {
+                        playPauseBtn.innerHTML = '<i class="fa-solid fa-play"></i>';
+                    }
+                }
+                resolve();
+            };
+
+            utterance.onerror = (e) => {
+                reject(new Error("Erreur lors de la lecture vocale locale."));
+            };
+
+            // Hack pour contourner les bugs de coupure de l'API SpeechSynthesis sur les textes longs
+            window.speechSynthesis.speak(utterance);
+            
+            // Attacher l'utterance à window pour éviter le garbage collection bug dans Chrome
+            window.currentUtterance = utterance;
+        });
+
     } catch (e) {
         alert(e.message);
         playPauseBtn.innerHTML = '<i class="fa-solid fa-play"></i>';
     }
 }
 
-globalAudio.addEventListener('play', () => {
-    playPauseBtn.innerHTML = '<i class="fa-solid fa-pause"></i>';
-    visualizer.classList.remove('hidden');
-});
-
-globalAudio.addEventListener('pause', () => {
-    playPauseBtn.innerHTML = '<i class="fa-solid fa-play"></i>';
-    visualizer.classList.add('hidden');
-});
-
-globalAudio.addEventListener('ended', () => {
-    playPauseBtn.innerHTML = '<i class="fa-solid fa-play"></i>';
-    visualizer.classList.add('hidden');
-    
-    if (playingBookContext) {
-        saveProgress(playingBookContext.book.title, playingBookContext.insights[playingBookContext.playingIndex].title);
-        
-        if (playingBookContext.playingIndex + 1 < playingBookContext.insights.length) {
-            playTrack(playingBookContext.playingIndex + 1);
+// Override play/pause button for Web Speech API
+playPauseBtn.addEventListener('click', () => {
+    if (window.speechSynthesis.speaking) {
+        if (window.speechSynthesis.paused) {
+            window.speechSynthesis.resume();
+            playPauseBtn.innerHTML = '<i class="fa-solid fa-pause"></i>';
+            visualizer.classList.remove('hidden');
+        } else {
+            window.speechSynthesis.pause();
+            playPauseBtn.innerHTML = '<i class="fa-solid fa-play"></i>';
+            visualizer.classList.add('hidden');
+        }
+    } else {
+        if (playingBookContext && playingBookContext.playingIndex >= 0) {
+            playTrack(playingBookContext.playingIndex);
         }
     }
-});
-
-playPauseBtn.addEventListener('click', () => {
-    if (globalAudio.paused) globalAudio.play();
-    else globalAudio.pause();
 });
