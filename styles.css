@@ -692,10 +692,10 @@ h2 {
     transform: translateX(-50%);
     width: calc(100% - 2rem);
     max-width: 500px;
-    background: rgba(10, 10, 10, 0.85);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    border: 1px solid var(--nw-border);
+    background: rgba(10, 10, 10, 0.95);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 12px;
     padding: 1rem 1.5rem;
     display: flex;
@@ -703,7 +703,7 @@ h2 {
     justify-content: space-between;
     z-index: 120;
     transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.9);
 }
 .sticky-player.hidden {
     transform: translate(-50%, 200%);
@@ -718,17 +718,44 @@ h2 {
 }
 .player-text {
     flex: 1;
-    white-space: nowrap;
-    overflow: hidden;
+    min-width: 0; /* Crucial for flex child text truncation */
 }
 .player-text h5 {
     font-size: 0.9rem;
+    color: var(--nw-white) !important;
     background: none !important;
     -webkit-background-clip: unset !important;
     -webkit-text-fill-color: var(--nw-white) !important;
     margin-bottom: 0.2rem;
+    white-space: nowrap;
+    overflow: hidden;
     text-overflow: ellipsis;
     letter-spacing: 1px !important;
+}
+.player-text p {
+    font-size: 0.75rem;
+    color: var(--nw-text-muted) !important;
+    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.sticky-progress-container {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 3px;
+    background: rgba(255, 255, 255, 0.1);
+    border-bottom-left-radius: 12px;
+    border-bottom-right-radius: 12px;
+    overflow: hidden;
+}
+.sticky-progress-fill {
+    height: 100%;
+    background: var(--nw-white);
+    width: 0%;
+    transition: width 0.1s linear;
 }
 .play-circle-btn {
     width: 50px;
