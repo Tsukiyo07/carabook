@@ -25,6 +25,9 @@
                 <a href="#" class="nav-item" data-target="search">
                     <i class="fa-solid fa-magnifying-glass"></i> <span>Recherche</span>
                 </a>
+                <a href="#" class="nav-item" data-target="history">
+                    <i class="fa-solid fa-clock-rotate-left"></i> <span>Historique</span>
+                </a>
                 <a href="#" class="nav-item" data-target="library">
                     <i class="fa-solid fa-bookmark"></i> <span>Bibliothèque</span>
                 </a>
@@ -58,17 +61,6 @@
                         <!-- Featured -->
                         <div class="featured-book" id="featuredBook">
                             <div class="skeleton-featured"></div>
-                        </div>
-
-                        <!-- Section Reprendre (Hidden par défaut) -->
-                        <div id="continueListeningSection" class="hidden">
-                            <div class="section-title">
-                                <h3>Reprendre l'écoute</h3>
-                            </div>
-                            <div class="books-carousel" id="continueListeningCarousel">
-                                <!-- Injecté par JS -->
-                            </div>
-                            <div style="margin-bottom: 2rem;"></div>
                         </div>
 
                         <!-- Horizontal Carousels -->
@@ -126,6 +118,20 @@
                     </div>
                 </div>
 
+                <!-- VIEW 4: HISTORY -->
+                <div id="view-history" class="view">
+                    <div class="view-content">
+                        <h2 class="page-title">Historique</h2>
+                        <div id="historyResults" class="search-results-grid">
+                            <div class="empty-state" id="historyEmptyState">
+                                <i class="fa-solid fa-clock-rotate-left"></i>
+                                <p>Vos lectures en cours apparaîtront ici.</p>
+                            </div>
+                        </div>
+                        <div class="bottom-padding"></div>
+                    </div>
+                </div>
+
             </div> <!-- End Views Container -->
 
             <!-- MOBILE BOTTOM NAVIGATION -->
@@ -137,6 +143,10 @@
                 <a href="#" class="nav-item" data-target="search">
                     <i class="fa-solid fa-magnifying-glass"></i>
                     <span>Recherche</span>
+                </a>
+                <a href="#" class="nav-item" data-target="history">
+                    <i class="fa-solid fa-clock-rotate-left"></i>
+                    <span>Historique</span>
                 </a>
                 <a href="#" class="nav-item" data-target="library">
                     <i class="fa-solid fa-bookmark"></i>
