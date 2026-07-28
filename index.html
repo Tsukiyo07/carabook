@@ -16,7 +16,7 @@
         <!-- DESKTOP SIDEBAR -->
         <aside class="desktop-sidebar">
             <div class="logo">
-                <i class="fa-solid fa-book-open-reader"></i> CaraBook<span>.AI</span>
+                <i class="fa-solid fa-book-open-reader"></i> CaraBook
             </div>
             <nav class="sidebar-nav">
                 <a href="#" class="nav-item active" data-target="home">
@@ -30,7 +30,7 @@
                 </a>
             </nav>
             <div class="sidebar-footer">
-                <p>Propulsé par IA</p>
+                <p>Mise à jour quotidienne</p>
             </div>
         </aside>
 
@@ -40,7 +40,7 @@
             <!-- MOBILE HEADER -->
             <header class="mobile-header">
                 <div class="logo">
-                    <i class="fa-solid fa-book-open-reader"></i> CaraBook<span>.AI</span>
+                    <i class="fa-solid fa-book-open-reader"></i> CaraBook
                 </div>
             </header>
 
@@ -166,8 +166,13 @@
                             <i class="fa-solid fa-play"></i> Générer l'Audiobook
                         </button>
                         <!-- Bouton caché, affiché si on revient sur un livre déjà généré -->
-                        <button id="resumeBtn" class="primary-btn-large hidden" style="background: rgba(161,0,255,0.2); border: 1px solid var(--accent); color: white;">
-                            <i class="fa-solid fa-headphones"></i> Reprendre l'écoute
+                        <button id="resumeBtn" class="primary-btn-large hidden" style="background: rgba(255,255,255,0.1); border: 1px solid #ffffff; color: white;">
+                            <i class="fa-solid fa-headphones"></i> Écouter le podcast
+                        </button>
+                        
+                        <!-- Bouton pour régénérer, affiché uniquement si le livre est en cache -->
+                        <button id="regenerateBtn" class="primary-btn-large hidden" style="background: transparent; border: 1px solid var(--nw-border); color: var(--nw-text-muted);">
+                            <i class="fa-solid fa-rotate-right"></i> Régénérer
                         </button>
 
                         <div id="loadingStatus" class="loading-state hidden">
