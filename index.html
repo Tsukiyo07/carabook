@@ -5,7 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>CaraBook - Résumés Audio</title>
     <meta name="description" content="CaraBook : L'application premium pour lire et écouter les résumés des meilleurs livres.">
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <!-- Changement de police vers League Spartan pour matcher Tibo Ka -->
+    <link href="https://fonts.googleapis.com/css2?family=League+Spartan:wght@300;400;600;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="styles.css">
 </head>
@@ -104,10 +105,13 @@
                 <div id="view-library" class="view">
                     <div class="view-content">
                         <h2 class="page-title">Ma Bibliothèque</h2>
-                        <div class="empty-state">
-                            <i class="fa-solid fa-bookmark"></i>
-                            <p>Vos résumés enregistrés apparaîtront ici prochainement.</p>
+                        <div id="libraryResults" class="search-results-grid">
+                            <div class="empty-state" id="libraryEmptyState">
+                                <i class="fa-solid fa-bookmark"></i>
+                                <p>Vos livres sauvegardés apparaîtront ici.</p>
+                            </div>
                         </div>
+                        <div class="bottom-padding"></div>
                     </div>
                 </div>
 
@@ -141,15 +145,18 @@
                     <div class="modal-cover-gradient"></div>
                 </div>
                 <div class="modal-content">
-                    <div class="book-tags">
+                    <div class="book-tags" style="justify-content: space-between; align-items: center;">
                         <span class="tag"><i class="fa-solid fa-headphones"></i> Audio premium</span>
+                        <button id="bookmarkBtn" class="icon-btn" style="background: rgba(255,255,255,0.1); width:40px; height:40px; border-radius:50%; color:var(--text-secondary);">
+                            <i class="fa-solid fa-bookmark"></i>
+                        </button>
                     </div>
                     <h1 id="modalTitle">Titre</h1>
                     <h3 id="modalAuthor">Auteur</h3>
                     
                     <div class="pitch-box">
                         <div id="pitchLoading" class="hidden">
-                            <div class="spinner-small"></div> <span>Création du pitch...</span>
+                            <div class="spinner-small"></div> <span>Chargement...</span>
                         </div>
                         <p id="modalPitch" class="book-pitch">Recherche en cours...</p>
                     </div>
@@ -158,6 +165,11 @@
                         <button id="generateBtn" class="primary-btn-large">
                             <i class="fa-solid fa-play"></i> Générer l'Audiobook
                         </button>
+                        <!-- Bouton caché, affiché si on revient sur un livre déjà généré -->
+                        <button id="resumeBtn" class="primary-btn-large hidden" style="background: rgba(161,0,255,0.2); border: 1px solid var(--accent); color: white;">
+                            <i class="fa-solid fa-headphones"></i> Reprendre l'écoute
+                        </button>
+
                         <div id="loadingStatus" class="loading-state hidden">
                             <div class="spinner"></div>
                             <span id="statusText">Rédaction du script en cours...</span>
@@ -195,25 +207,26 @@
                     <div style="height: 150px;"></div> <!-- Space for sticky player -->
                 </div>
             </div>
+        </div>
 
-            <!-- STICKY GLOBAL AUDIO PLAYER -->
-            <div id="stickyPlayer" class="sticky-player hidden">
-                <audio id="globalAudioElement" class="hidden"></audio>
-                
-                <div class="player-info">
-                    <div class="visualizer hidden" id="audioVisualizer">
-                        <div class="bar"></div><div class="bar"></div><div class="bar"></div>
-                    </div>
-                    <div class="player-text">
-                        <h5 id="playerInsightTitle">Lecteur audio prêt</h5>
-                    </div>
+        <!-- STICKY GLOBAL AUDIO PLAYER (Deplacé au niveau GLOBAL) -->
+        <div id="stickyPlayer" class="sticky-player hidden">
+            <audio id="globalAudioElement" class="hidden"></audio>
+            
+            <div class="player-info" id="globalPlayerInfo" style="cursor: pointer;">
+                <div class="visualizer hidden" id="audioVisualizer">
+                    <div class="bar"></div><div class="bar"></div><div class="bar"></div>
                 </div>
-                
-                <div class="player-controls">
-                    <button id="playerPlayPauseBtn" class="play-circle-btn">
-                        <i class="fa-solid fa-play"></i>
-                    </button>
+                <div class="player-text">
+                    <h5 id="playerInsightTitle">Lecteur audio prêt</h5>
+                    <p id="playerBookTitle" style="font-size: 0.8rem; color: var(--text-secondary); margin:0;">Titre du livre</p>
                 </div>
+            </div>
+            
+            <div class="player-controls">
+                <button id="playerPlayPauseBtn" class="play-circle-btn">
+                    <i class="fa-solid fa-play"></i>
+                </button>
             </div>
         </div>
 
