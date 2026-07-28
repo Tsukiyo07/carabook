@@ -16,6 +16,9 @@
   --nw-black: #000000;
   --nw-font: 'League Spartan', sans-serif;
   --transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  /* Fallbacks for hardcoded html inline styles */
+  --accent: #ffffff;
+  --text-secondary: #888888;
 }
 
 ::selection {
@@ -435,6 +438,20 @@ h2 {
     grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
     gap: 1.5rem;
 }
+.empty-state {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 4rem 1rem;
+    color: var(--nw-text-muted);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+}
+.empty-state i {
+    font-size: 3rem;
+    opacity: 0.5;
+}
 
 /* --- FULL MODALS --- */
 .full-modal {
@@ -522,7 +539,33 @@ h2 {
     font-size: 1.1rem;
     line-height: 1.6;
     color: var(--nw-text);
-    margin-bottom: 2.5rem;
+}
+
+.pitch-box {
+    margin-bottom: 2rem;
+}
+
+.action-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin-top: 1.5rem;
+}
+
+.book-tags {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 1.5rem;
+}
+
+.loading-state {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 1rem;
+    color: var(--nw-text-muted);
 }
 
 /* --- PLAYLIST --- */
