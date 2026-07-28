@@ -32,7 +32,7 @@ Auteur: ${bookAuthors}
 
 TA MISSION : Tu dois diviser ton résumé en respectant LE VRAI CHAPITRAGE (ou les vraies parties principales) de ce livre.
 Ne génère pas un résumé générique, mais base-toi sur la véritable structure de l'œuvre.
-RÈGLE ABSOLUE : Tu dois IMPÉRATIVEMENT conserver les termes techniques originaux, les noms propres et les concepts clés tels qu'ils sont connus dans le livre (même s'ils sont en anglais ou très spécifiques), sans les traduire grossièrement ou les simplifier.
+RÈGLE ABSOLUE : Tu dois IMPÉRATIVEMENT conserver les noms propres et les concepts clés tels qu'ils sont connus dans le livre. Tu peux tout à fait les traduire en français pour que l'écoute soit fluide et naturelle, à condition que la traduction soit exacte et couramment utilisée.
 
 ATTENTION A LA LONGUEUR : Le podcast final doit durer environ 15 minutes. 
 Par conséquent, le texte de chaque chapitre doit être TRÈS détaillé (environ 300 à 450 mots par chapitre). 
