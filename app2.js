@@ -25,7 +25,7 @@ const loadingStatus = document.getElementById('loadingStatus');
 window.addEventListener('DOMContentLoaded', () => {
     loadHomeData();
     renderLibrary();
-    loadHistoryCarousel();
+    renderHistory();
 });
 
 // --- Tab Navigation ---
@@ -41,8 +41,8 @@ function switchTab(targetId) {
     if (targetId === 'library') {
         renderLibrary();
     }
-    if (targetId === 'home') {
-        loadHistoryCarousel();
+    if (targetId === 'history') {
+        renderHistory();
     }
 }
 
@@ -60,17 +60,20 @@ async function loadHomeData() {
     fetchCarouselData('psychology', 'selfHelpBooks');
 }
 
-function loadHistoryCarousel() {
+function renderHistory() {
     const history = JSON.parse(localStorage.getItem('carabook_history') || '[]');
-    const container = document.getElementById('continueListeningCarousel');
-    const section = document.getElementById('continueListeningSection');
+    const container = document.getElementById('historyResults');
+    const emptyState = document.getElementById('historyEmptyState');
     
     if (!history || history.length === 0) {
-        if(section) section.classList.add('hidden');
+        if(emptyState) emptyState.style.display = 'flex';
+        Array.from(container.children).forEach(c => {
+            if (c !== emptyState && c.id !== 'historyEmptyState') c.remove();
+        });
         return;
     }
     
-    if(section) section.classList.remove('hidden');
+    if(emptyState) emptyState.style.display = 'none';
     if(!container) return;
     container.innerHTML = '';
     
