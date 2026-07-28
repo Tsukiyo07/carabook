@@ -32,6 +32,8 @@ Auteur: ${bookAuthors}
 
 TA MISSION : Tu dois diviser ton résumé en respectant LE VRAI CHAPITRAGE (ou les vraies parties principales) de ce livre.
 Ne génère pas un résumé générique, mais base-toi sur la véritable structure de l'œuvre.
+RÈGLE ABSOLUE : Tu dois IMPÉRATIVEMENT conserver les termes techniques originaux, les noms propres et les concepts clés tels qu'ils sont connus dans le livre (même s'ils sont en anglais ou très spécifiques), sans les traduire grossièrement ou les simplifier.
+
 Tu DOIS répondre EXCLUSIVEMENT avec un objet JSON valide, sans balises markdown.
 Format attendu :
 {
