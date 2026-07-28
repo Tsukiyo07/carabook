@@ -1,28 +1,35 @@
-const googleTTS = require('google-tts-api');
+function chunkTextByWords(text, maxLength) {
+    const chunks = [];
+    let currentChunk = '';
+    const words = text.split(/\s+/);
+    for (const word of words) {
+        if (!word) continue;
+        if ((currentChunk + ' ' + word).trim().length <= maxLength) {
+            currentChunk += (currentChunk ? ' ' : '') + word;
+        } else {
+            if (currentChunk) chunks.push(currentChunk);
+            currentChunk = word;
+        }
+    }
+    if (currentChunk) chunks.push(currentChunk);
+    return chunks;
+}
 
 export default async function handler(req, res) {
-    if (req.method !== 'POST') {
-        return res.status(405).json({ error: 'Method Not Allowed' });
-    }
-
+    if (req.method !== 'POST') return res.status(405).json({ error: "Method not allowed" });
     try {
         const { text } = req.body;
-        
-        if (!text) {
-            return res.status(400).json({ error: 'Texte manquant' });
-        }
-
-        const urls = googleTTS.getAllAudioUrls(text, {
-            lang: 'fr',
-            slow: false,
-            host: 'https://translate.google.com',
-            splitPunct: ',.?!'
+        if (!text) return res.status(400).json({ error: "Missing text" });
+        const safeChunks = chunkTextByWords(text, 190).filter(c => c.trim().length > 0);
+        const urls = safeChunks.map(chunk => {
+            const encodedText = encodeURIComponent(chunk);
+            return {
+                url: `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodedText}&tl=fr&client=tw-ob`,
+                shortText: chunk
+            };
         });
-
-        return res.status(200).json({ urls });
-
+        res.status(200).json({ urls });
     } catch (error) {
-        console.error("TTS Error:", error);
-        return res.status(500).json({ error: error.message || 'Error generating TTS' });
+        res.status(500).json({ error: "Erreur TTS: " + error.message });
     }
 }
