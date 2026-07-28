@@ -1,35 +1,36 @@
-function chunkTextByWords(text, maxLength) {
-    const chunks = [];
-    let currentChunk = '';
-    const words = text.split(/\s+/);
-    for (const word of words) {
-        if (!word) continue;
-        if ((currentChunk + ' ' + word).trim().length <= maxLength) {
-            currentChunk += (currentChunk ? ' ' : '') + word;
-        } else {
-            if (currentChunk) chunks.push(currentChunk);
-            currentChunk = word;
-        }
-    }
-    if (currentChunk) chunks.push(currentChunk);
-    return chunks;
-}
-
 export default async function handler(req, res) {
-    if (req.method !== 'POST') return res.status(405).json({ error: "Method not allowed" });
+    if (req.method !== 'GET' && req.method !== 'POST') {
+        return res.status(405).json({ error: "Method not allowed" });
+    }
+
     try {
-        const { text } = req.body;
-        if (!text) return res.status(400).json({ error: "Missing text" });
-        const safeChunks = chunkTextByWords(text, 190).filter(c => c.trim().length > 0);
-        const urls = safeChunks.map(chunk => {
-            const encodedText = encodeURIComponent(chunk);
-            return {
-                url: `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodedText}&tl=fr&client=tw-ob`,
-                shortText: chunk
-            };
+        const text = req.method === 'POST' ? req.body.text : req.query.text;
+        if (!text) {
+            return res.status(400).json({ error: "Missing text" });
+        }
+
+        const encodedText = encodeURIComponent(text);
+        const url = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodedText}&tl=fr&client=tw-ob`;
+
+        const googleRes = await fetch(url, {
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+            }
         });
-        res.status(200).json({ urls });
+
+        if (!googleRes.ok) {
+            throw new Error(`Google TTS API returned ${googleRes.status}`);
+        }
+
+        const arrayBuffer = await googleRes.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+
+        res.setHeader('Content-Type', 'audio/mpeg');
+        res.setHeader('Cache-Control', 'public, max-age=86400');
+        res.status(200).send(buffer);
+
     } catch (error) {
-        res.status(500).json({ error: "Erreur TTS: " + error.message });
+        console.error("TTS Proxy Error:", error);
+        res.status(500).json({ error: "TTS Proxy Error: " + error.message });
     }
 }
