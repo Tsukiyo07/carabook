@@ -459,7 +459,19 @@ async function playTrack(index, startChunk = 0, resumeTime = 0) {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ text: insight.text })
             });
-            if (!res.ok) throw new Error("Erreur de synthèse vocale.");
+            if (!res.ok) {
+                let errorMsg = "Erreur de synthèse vocale.";
+                try {
+                    const errText = await res.text();
+                    try {
+                        const errData = JSON.parse(errText);
+                        if (errData.error) errorMsg = errData.error;
+                    } catch (e2) {
+                        errorMsg = "Server returned non-JSON: " + res.status + " " + errText.substring(0, 100);
+                    }
+                } catch(e) {}
+                throw new Error(errorMsg);
+            }
             const data = await res.json();
             insight.audioUrls = data.urls;
             
