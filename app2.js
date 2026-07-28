@@ -400,6 +400,10 @@ const globalAudio = document.getElementById('globalAudioElement');
 const playPauseBtn = document.getElementById('playerPlayPauseBtn');
 const visualizer = document.getElementById('audioVisualizer');
 
+let speechQueue = [];
+let isPlayingChunk = false;
+let currentUtterance = null;
+
 async function playTrack(index) {
     if (!playingBookContext) return;
     if (index >= playingBookContext.insights.length) return; 
@@ -416,45 +420,55 @@ async function playTrack(index) {
     stickyPlayer.classList.remove('hidden');
     playPauseBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
     
-    if (playingBookContext.playingIndex === index && !globalAudio.paused) {
-        globalAudio.pause();
-        return;
-    }
-    
     playingBookContext.playingIndex = index;
     
-    try {
-        // Utilisation de Web Speech API (100% gratuit et illimité) au lieu de ElevenLabs
-        return new Promise((resolve, reject) => {
-            if (!window.speechSynthesis) {
-                reject(new Error("Votre navigateur ne supporte pas la synthèse vocale."));
-                return;
-            }
-
-            // Arrêter toute lecture en cours
-            window.speechSynthesis.cancel();
-
-            const utterance = new SpeechSynthesisUtterance(insight.text);
-            utterance.lang = 'fr-FR';
-            
-            // Essayer de trouver une voix premium française (Google, Apple, Microsoft)
-            const voices = window.speechSynthesis.getVoices();
-            const frVoices = voices.filter(v => v.lang.startsWith('fr'));
-            // Préférer Google français ou Apple Thomas/Audrey si dispo
-            const premiumVoice = frVoices.find(v => v.name.includes('Google') || v.name.includes('Thomas') || v.name.includes('Audrey'));
-            if (premiumVoice) {
-                utterance.voice = premiumVoice;
-            } else if (frVoices.length > 0) {
-                utterance.voice = frVoices[0];
-            }
-
-            utterance.onstart = () => {
-                visualizer.classList.remove('hidden');
+    // Arrêter tout ce qui joue
+    window.speechSynthesis.cancel();
+    speechQueue = [];
+    
+    // Découper le texte en phrases pour des pauses naturelles et éviter les bugs de limite
+    const sentences = insight.text.match(/[^.!?]+[.!?]+/g) || [insight.text];
+    
+    // Récupérer la meilleure voix possible
+    let voices = window.speechSynthesis.getVoices();
+    if (voices.length === 0) {
+        // Attendre que les voix chargent si elles ne sont pas prêtes
+        await new Promise(r => {
+            window.speechSynthesis.onvoiceschanged = () => {
+                voices = window.speechSynthesis.getVoices();
+                r();
             };
+            setTimeout(r, 1000); // fallback
+        });
+    }
+    
+    const frVoices = voices.filter(v => v.lang.startsWith('fr'));
+    // 1. Edge Neural (Incroyable qualité)
+    let bestVoice = frVoices.find(v => v.name.includes('Natural') || v.name.includes('Online'));
+    // 2. Apple Premium
+    if (!bestVoice) bestVoice = frVoices.find(v => v.name.includes('Premium') || v.name.includes('Enhanced'));
+    // 3. Google Cloud (Chrome)
+    if (!bestVoice) bestVoice = frVoices.find(v => v.name.includes('Google'));
+    // 4. Default
+    if (!bestVoice) bestVoice = frVoices[0];
 
-            utterance.onend = () => {
+    sentences.forEach((sentence, i) => {
+        const utterance = new SpeechSynthesisUtterance(sentence.trim());
+        if (bestVoice) utterance.voice = bestVoice;
+        
+        // Ajustements pour un rendu plus "Podcast" et moins robotique
+        utterance.rate = 0.95; 
+        utterance.pitch = 1.05;
+
+        utterance.onstart = () => {
+            visualizer.classList.remove('hidden');
+            playPauseBtn.innerHTML = '<i class="fa-solid fa-pause"></i>';
+        };
+
+        utterance.onend = () => {
+            if (i === sentences.length - 1) {
+                // Fin du chapitre
                 visualizer.classList.add('hidden');
-                
                 if (playingBookContext) {
                     saveProgress(playingBookContext.book.title, insight.title);
                     if (playingBookContext.playingIndex + 1 < playingBookContext.insights.length) {
@@ -463,24 +477,19 @@ async function playTrack(index) {
                         playPauseBtn.innerHTML = '<i class="fa-solid fa-play"></i>';
                     }
                 }
-                resolve();
-            };
+            }
+        };
 
-            utterance.onerror = (e) => {
-                reject(new Error("Erreur lors de la lecture vocale locale."));
-            };
-
-            // Hack pour contourner les bugs de coupure de l'API SpeechSynthesis sur les textes longs
-            window.speechSynthesis.speak(utterance);
-            
-            // Attacher l'utterance à window pour éviter le garbage collection bug dans Chrome
-            window.currentUtterance = utterance;
-        });
-
-    } catch (e) {
-        alert(e.message);
-        playPauseBtn.innerHTML = '<i class="fa-solid fa-play"></i>';
-    }
+        utterance.onerror = () => {
+            visualizer.classList.add('hidden');
+            playPauseBtn.innerHTML = '<i class="fa-solid fa-play"></i>';
+        };
+        
+        speechQueue.push(utterance);
+    });
+    
+    // Lancer la première phrase
+    speechQueue.forEach(u => window.speechSynthesis.speak(u));
 }
 
 // Override play/pause button for Web Speech API
