@@ -330,7 +330,14 @@ generateBtn.addEventListener('click', async () => {
             })
         });
 
-        if (!response.ok) throw new Error("Erreur de génération serveur");
+        if (!response.ok) {
+            let errorMsg = "Erreur de génération serveur";
+            try {
+                const errData = await response.json();
+                if (errData.error) errorMsg = errData.error;
+            } catch(e) {}
+            throw new Error(errorMsg);
+        }
         const data = await response.json();
         
         localStorage.setItem('carabook_cache_' + currentBook.key, JSON.stringify(data.insights));
