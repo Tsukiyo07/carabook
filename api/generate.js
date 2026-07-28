@@ -34,13 +34,17 @@ TA MISSION : Tu dois diviser ton résumé en respectant LE VRAI CHAPITRAGE (ou l
 Ne génère pas un résumé générique, mais base-toi sur la véritable structure de l'œuvre.
 RÈGLE ABSOLUE : Tu dois IMPÉRATIVEMENT conserver les termes techniques originaux, les noms propres et les concepts clés tels qu'ils sont connus dans le livre (même s'ils sont en anglais ou très spécifiques), sans les traduire grossièrement ou les simplifier.
 
+ATTENTION A LA LONGUEUR : Le podcast final doit durer environ 15 minutes. 
+Par conséquent, le texte de chaque chapitre doit être TRÈS détaillé (environ 300 à 450 mots par chapitre). 
+N'hésite surtout pas à raconter les anecdotes du livre, à donner les exemples concrets utilisés par l'auteur et à développer la philosophie de chaque idée en profondeur. Ne survole pas le sujet.
+
 Tu DOIS répondre EXCLUSIVEMENT avec un objet JSON valide, sans balises markdown.
 Format attendu :
 {
   "insights": [
     {
       "title": "Nom du vrai Chapitre / Partie",
-      "text": "Script oral d'environ 80-100 mots résumant ce chapitre précis. Ton passionnant et direct."
+      "text": "Script oral de 300 à 450 mots résumant ce chapitre en profondeur (avec exemples et anecdotes). Ton passionnant et captivant."
     }
   ]
 }`;
