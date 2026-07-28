@@ -439,7 +439,8 @@ async function playTrack(index, startChunk = 0, resumeTime = 0) {
     if (trackDiv) {
         trackDiv.classList.add('active');
         trackDiv.classList.remove('listened');
-        trackDiv.querySelector('.track-status i').className = 'fa-solid fa-play';
+        const icon = trackDiv.querySelector('.track-status i');
+        if (icon) icon.className = 'fa-solid fa-spinner fa-spin';
     }
     
     document.getElementById('playerInsightTitle').textContent = insight.title;
@@ -574,12 +575,26 @@ globalAudio.addEventListener('ended', () => {
 globalAudio.addEventListener('play', () => {
     playPauseBtn.innerHTML = '<i class="fa-solid fa-pause"></i>';
     visualizer.classList.remove('hidden');
+    if (playingBookContext) {
+        const trackDiv = document.getElementById(`track-${playingBookContext.playingIndex}`);
+        if (trackDiv) {
+            const icon = trackDiv.querySelector('.track-status i');
+            if (icon) icon.className = 'fa-solid fa-volume-high';
+        }
+    }
 });
 
 globalAudio.addEventListener('pause', () => {
     playPauseBtn.innerHTML = '<i class="fa-solid fa-play"></i>';
     visualizer.classList.add('hidden');
     saveHistory(); // Save on pause
+    if (playingBookContext) {
+        const trackDiv = document.getElementById(`track-${playingBookContext.playingIndex}`);
+        if (trackDiv && !trackDiv.classList.contains('listened')) {
+            const icon = trackDiv.querySelector('.track-status i');
+            if (icon) icon.className = 'fa-solid fa-play';
+        }
+    }
 });
 
 playPauseBtn.addEventListener('click', () => {
