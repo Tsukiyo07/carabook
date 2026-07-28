@@ -3,7 +3,7 @@ const searchInput = document.getElementById('searchInput');
 const searchBtn = document.getElementById('searchBtn');
 const resultsSection = document.getElementById('resultsSection');
 const detailsSection = document.getElementById('detailsSection');
-const playerSection = document.getElementById('playerSection');
+const insightsSection = document.getElementById('insightsSection');
 const backBtn = document.getElementById('backBtn');
 const generateBtn = document.getElementById('generateBtn');
 const loadingStatus = document.getElementById('loadingStatus');
@@ -72,7 +72,7 @@ async function searchBooks(query) {
     resultsSection.innerHTML = '<div class="spinner" style="margin: 0 auto;"></div>';
     resultsSection.classList.remove('hidden');
     detailsSection.classList.add('hidden');
-    playerSection.classList.add('hidden');
+    insightsSection.classList.add('hidden');
 
     try {
         // Using OpenLibrary API which is completely free and doesn't have strict rate limits like Google Books
