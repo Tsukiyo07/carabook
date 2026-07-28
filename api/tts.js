@@ -1,5 +1,22 @@
 const googleTTS = require('google-tts-api');
 
+function chunkTextByWords(text, maxLength) {
+    const chunks = [];
+    let currentChunk = '';
+    const words = text.split(/\s+/);
+    
+    for (const word of words) {
+        if ((currentChunk + ' ' + word).trim().length <= maxLength) {
+            currentChunk += (currentChunk ? ' ' : '') + word;
+        } else {
+            if (currentChunk) chunks.push(currentChunk);
+            currentChunk = word;
+        }
+    }
+    if (currentChunk) chunks.push(currentChunk);
+    return chunks;
+}
+
 export default async function handler(req, res) {
     if (req.method !== 'POST') {
         return res.status(405).json({ error: "Method not allowed" });
@@ -11,13 +28,18 @@ export default async function handler(req, res) {
             return res.status(400).json({ error: "Missing text" });
         }
 
-        // google-tts-api getAllAudioUrls découpe automatiquement le texte
-        // s'il dépasse 200 caractères et renvoie un tableau d'URLs.
-        const urls = googleTTS.getAllAudioUrls(text, {
-            lang: 'fr',
-            slow: false,
-            host: 'https://translate.google.com',
-            splitPunct: ',.?!'
+        // Custom chunking to absolutely guarantee < 200 chars per request (Google limit)
+        const safeChunks = chunkTextByWords(text, 190);
+        
+        const urls = safeChunks.map(chunk => {
+            return {
+                url: googleTTS.getAudioUrl(chunk, {
+                    lang: 'fr',
+                    slow: false,
+                    host: 'https://translate.google.com',
+                }),
+                shortText: chunk
+            };
         });
 
         res.status(200).json({ urls });
