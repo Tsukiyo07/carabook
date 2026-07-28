@@ -34,7 +34,7 @@ navItems.forEach(item => {
     });
 });
 
-// --- Home Data (Fake Trending) ---
+// --- Home Data ---
 async function loadHomeData() {
     fetchCarouselData('steve jobs', 'featuredBook', true);
     fetchCarouselData('bestseller', 'trendingBooks');
@@ -66,7 +66,7 @@ async function fetchCarouselData(query, containerId, isFeatured = false) {
                 const card = document.createElement('div');
                 card.className = 'book-card-mini';
                 card.innerHTML = `
-                    <img src="${coverUrl}" alt="Cover" loading="lazy">
+                    <img src="${coverUrl}" loading="lazy">
                     <h4>${item.title}</h4>
                     <p>${authors}</p>
                 `;
@@ -75,7 +75,7 @@ async function fetchCarouselData(query, containerId, isFeatured = false) {
             }
         });
     } catch (e) {
-        console.error("Home data error", e);
+        console.error(e);
     }
 }
 
@@ -112,55 +112,107 @@ async function doSearch(query) {
             card.onclick = () => openBookDetails(item, coverUrl, authors);
             searchResults.appendChild(card);
         });
-    } catch (e) {
-        searchResults.innerHTML = '<p style="color:red; text-align:center;">Erreur lors de la recherche.</p>';
-    }
+    } catch (e) {}
 }
 
-// --- Book Details Modal ---
+// --- Book Details & Pitch Logic ---
 async function openBookDetails(item, coverUrl, authors) {
     document.getElementById('modalCover').src = coverUrl;
     document.getElementById('modalTitle').textContent = item.title;
     document.getElementById('modalAuthor').textContent = authors;
-    document.getElementById('modalDescription').textContent = "Recherche des détails de l'ouvrage...";
+    
+    const pitchText = document.getElementById('modalPitch');
+    const pitchLoading = document.getElementById('pitchLoading');
+    const generateBtn = document.getElementById('generateBtn');
+    
+    pitchText.textContent = "";
+    pitchLoading.classList.remove('hidden');
+    generateBtn.classList.add('hidden'); // Hide btn until pitch is ready
     
     currentBook = { title: item.title, authors: authors, description: "" };
     bookModal.classList.remove('hidden');
 
     try {
+        // Fetch raw description for the AI prompt
         if (item.key) {
             const res = await fetch(`https://openlibrary.org${item.key}.json`);
             if (res.ok) {
                 const data = await res.json();
-                let desc = typeof data.description === 'string' ? data.description : (data.description?.value || "Ce livre ne possède pas de description dans la base de données. L'IA générera les insights à partir de son titre.");
-                document.getElementById('modalDescription').textContent = desc;
-                currentBook.description = desc;
+                currentBook.description = typeof data.description === 'string' ? data.description : (data.description?.value || "");
             }
         }
-    } catch(e) {}
+        
+        // Generate Teaser Pitch via Backend
+        const pitchRes = await fetch('/api/generate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                type: 'pitch', 
+                bookTitle: currentBook.title, 
+                bookAuthors: currentBook.authors, 
+                bookDesc: currentBook.description 
+            })
+        });
+        
+        if (!pitchRes.ok) throw new Error("Erreur Pitch");
+        const pitchData = await pitchRes.json();
+        
+        pitchLoading.classList.add('hidden');
+        pitchText.textContent = pitchData.pitch || "Découvrez les secrets de ce livre en générant l'audiobook complet.";
+        generateBtn.classList.remove('hidden');
+        
+    } catch(e) {
+        pitchLoading.classList.add('hidden');
+        pitchText.textContent = "Résumé indisponible. Vous pouvez tout de même générer l'audiobook complet.";
+        generateBtn.classList.remove('hidden');
+    }
 }
 
 document.getElementById('closeBookModal').addEventListener('click', () => {
     bookModal.classList.add('hidden');
 });
 
-// --- AI Generation (VIA BACKEND) ---
+// --- Playlist Generation (Full Audio) ---
 document.getElementById('generateBtn').addEventListener('click', async () => {
     document.getElementById('generateBtn').classList.add('hidden');
     document.getElementById('loadingStatus').classList.remove('hidden');
 
     try {
-        const insightsData = await generateInsights(currentBook);
-        currentInsights = insightsData;
-        buildReader(insightsData, currentBook);
+        const response = await fetch('/api/generate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                type: 'full', 
+                bookTitle: currentBook.title, 
+                bookAuthors: currentBook.authors, 
+                bookDesc: currentBook.description 
+            })
+        });
+
+        if (!response.ok) throw new Error("Erreur de génération serveur");
+        
+        const insightsData = await response.json();
+        currentInsights = insightsData.insights;
+        
+        buildPlaylist(currentInsights, currentBook);
         
         document.getElementById('loadingStatus').classList.add('hidden');
         document.getElementById('generateBtn').classList.remove('hidden');
         
         bookModal.classList.add('hidden');
         readerModal.classList.remove('hidden');
+        
+        // Auto-play the first track that isn't finished!
+        const savedProgress = loadProgress(currentBook.title);
+        const nextTrack = currentInsights.findIndex(i => !savedProgress.includes(i.title));
+        if (nextTrack !== -1) {
+            playTrack(nextTrack);
+        } else {
+            playTrack(0); // Play from beginning if all finished
+        }
+        
     } catch (e) {
-        alert("Erreur de génération : " + e.message);
+        alert("Erreur: " + e.message);
         document.getElementById('loadingStatus').classList.add('hidden');
         document.getElementById('generateBtn').classList.remove('hidden');
     }
@@ -168,80 +220,97 @@ document.getElementById('generateBtn').addEventListener('click', async () => {
 
 document.getElementById('closeReaderBtn').addEventListener('click', () => {
     readerModal.classList.add('hidden');
-    const globalAudio = document.getElementById('globalAudioElement');
     globalAudio.pause();
     document.getElementById('stickyPlayer').classList.add('hidden');
 });
 
-async function generateInsights(book) {
-    const prompt = `Tu es une application premium de résumés de livres (comme Blinkist ou StoryShots).
-    Analyse ce livre et donne-moi 3 à 5 Insights clés (idées principales).
-    Livre: ${book.title}
-    Auteur: ${book.authors}
-    Description: ${book.description}
-    
-    Tu DOIS répondre EXCLUSIVEMENT avec un objet JSON valide, sans balises markdown.
-    Format attendu :
-    {
-      "introduction": "Phrase d'accroche captivante",
-      "insights": [
-        {
-          "title": "Titre du chapitre",
-          "text": "Script oral d'environ 80-100 mots. Ton passionnant et direct.",
-          "takeaways": ["Point clé 1", "Point clé 2"]
-        }
-      ]
-    }`;
-
-    // Appelle le backend Vercel (sécurisé)
-    const response = await fetch('/api/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt: prompt })
-    });
-
-    if (!response.ok) {
-        const err = await response.json();
-        throw new Error(err.error || "Erreur serveur");
-    }
-    
-    return await response.json();
-}
-
-function buildReader(data, book) {
-    document.getElementById('readerBookTitle').textContent = book.title;
-    document.getElementById('readerIntro').textContent = data.introduction;
-    
-    const container = document.getElementById('insightsContainer');
-    container.innerHTML = '';
-    
-    data.insights.forEach((insight, i) => {
-        const div = document.createElement('div');
-        div.className = 'insight-item';
-        div.innerHTML = `
-            <h3>${i+1}. ${insight.title}</h3>
-            <p>${insight.text}</p>
-            <div class="takeaways">
-                <h5>À retenir</h5>
-                <ul>${insight.takeaways.map(t => `<li>${t}</li>`).join('')}</ul>
-            </div>
-            <button class="primary-btn-large" style="margin-top:2rem;" onclick="playAudioForInsight(${i})">
-                <i class="fa-solid fa-play"></i> Écouter l'Insight
-            </button>
-        `;
-        container.appendChild(div);
-    });
-}
-
-// --- Audio Player Logic (VIA BACKEND) ---
+// --- PLAYLIST UI & LOGIC ---
 const audioCache = new Map();
 let currentPlayingIndex = -1;
 
-async function playAudioForInsight(index) {
-    const insight = currentInsights.insights[index];
-    const globalAudio = document.getElementById('globalAudioElement');
+function buildPlaylist(insights, book) {
+    document.getElementById('readerBookTitle').textContent = book.title;
+    
+    const container = document.getElementById('playlistContainer');
+    container.innerHTML = '';
+    
+    const savedProgress = loadProgress(book.title);
+    
+    insights.forEach((insight, i) => {
+        const isListened = savedProgress.includes(insight.title);
+        
+        const div = document.createElement('div');
+        div.className = `track-item ${isListened ? 'listened' : ''}`;
+        div.id = `track-${i}`;
+        
+        // Hidden text, just track UI
+        div.innerHTML = `
+            <div class="track-number">${i+1}</div>
+            <div class="track-info">
+                <h4>${insight.title}</h4>
+                <p>Podcast IA</p>
+            </div>
+            <div class="track-status">
+                <i class="fa-solid ${isListened ? 'fa-circle-check' : 'fa-play'}"></i>
+            </div>
+        `;
+        
+        div.onclick = () => playTrack(i);
+        container.appendChild(div);
+    });
+    
+    updateGlobalProgress();
+}
+
+// --- Progression (LocalStorage) ---
+function loadProgress(bookTitle) {
+    const saved = localStorage.getItem(`carabook_progress_${bookTitle}`);
+    return saved ? JSON.parse(saved) : [];
+}
+
+function saveProgress(bookTitle, insightTitle) {
+    const progress = loadProgress(bookTitle);
+    if (!progress.includes(insightTitle)) {
+        progress.push(insightTitle);
+        localStorage.setItem(`carabook_progress_${bookTitle}`, JSON.stringify(progress));
+    }
+    
+    // Update UI
+    const trackDiv = document.getElementById(`track-${currentPlayingIndex}`);
+    if (trackDiv) {
+        trackDiv.classList.add('listened');
+        trackDiv.querySelector('.track-status i').className = 'fa-solid fa-circle-check';
+    }
+    updateGlobalProgress();
+}
+
+function updateGlobalProgress() {
+    if (!currentBook || !currentInsights) return;
+    const progress = loadProgress(currentBook.title);
+    const fill = document.getElementById('globalProgressFill');
+    const text = document.getElementById('progressText');
+    
+    const percentage = (progress.length / currentInsights.length) * 100;
+    fill.style.width = `${percentage}%`;
+    text.textContent = `${progress.length}/${currentInsights.length} lu`;
+}
+
+
+// --- Audio Player ---
+const globalAudio = document.getElementById('globalAudioElement');
+const playPauseBtn = document.getElementById('playerPlayPauseBtn');
+const visualizer = document.getElementById('audioVisualizer');
+
+async function playTrack(index) {
+    if (index >= currentInsights.length) return; // End of playlist
+    
+    const insight = currentInsights[index];
     const stickyPlayer = document.getElementById('stickyPlayer');
-    const playPauseBtn = document.getElementById('playerPlayPauseBtn');
+    
+    // Update UI active track
+    document.querySelectorAll('.track-item').forEach(el => el.classList.remove('active'));
+    const trackDiv = document.getElementById(`track-${index}`);
+    if (trackDiv) trackDiv.classList.add('active');
     
     document.getElementById('playerInsightTitle').textContent = insight.title;
     stickyPlayer.classList.remove('hidden');
@@ -256,18 +325,13 @@ async function playAudioForInsight(index) {
     
     try {
         if (!audioCache.has(insight.title)) {
-            // Appelle le backend Vercel pour masquer la clé API
             const res = await fetch('/api/tts', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    text: insight.text,
-                    voiceId: 'IKne3meq5aSn9XLyUdCD' // Charlie voice
-                })
+                body: JSON.stringify({ text: insight.text })
             });
             
-            if (!res.ok) throw new Error("Erreur de génération vocale (vérifiez la clé API ElevenLabs sur Vercel)");
-            
+            if (!res.ok) throw new Error("Erreur vocale (Vérifiez votre clé sur Vercel)");
             const blob = await res.blob();
             audioCache.set(insight.title, URL.createObjectURL(blob));
         }
@@ -280,22 +344,29 @@ async function playAudioForInsight(index) {
     }
 }
 
-const globalAudio = document.getElementById('globalAudioElement');
-const playPauseBtn = document.getElementById('playerPlayPauseBtn');
-const visualizer = document.getElementById('audioVisualizer');
-
 globalAudio.addEventListener('play', () => {
     playPauseBtn.innerHTML = '<i class="fa-solid fa-pause"></i>';
     visualizer.classList.remove('hidden');
 });
+
 globalAudio.addEventListener('pause', () => {
     playPauseBtn.innerHTML = '<i class="fa-solid fa-play"></i>';
     visualizer.classList.add('hidden');
 });
+
 globalAudio.addEventListener('ended', () => {
     playPauseBtn.innerHTML = '<i class="fa-solid fa-play"></i>';
     visualizer.classList.add('hidden');
+    
+    // Save progress when track finishes naturally
+    saveProgress(currentBook.title, currentInsights[currentPlayingIndex].title);
+    
+    // Auto-play next track
+    if (currentPlayingIndex + 1 < currentInsights.length) {
+        playTrack(currentPlayingIndex + 1);
+    }
 });
+
 playPauseBtn.addEventListener('click', () => {
     if (globalAudio.paused) globalAudio.play();
     else globalAudio.pause();
