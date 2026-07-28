@@ -9,14 +9,44 @@ export default async function handler(req, res) {
     }
 
     try {
-        const prompt = req.body.prompt;
-        const model = 'gemini-3.6-flash'; // Fixed to the recommended model
+        const { type, bookTitle, bookAuthors, bookDesc } = req.body;
+        const model = 'gemini-3.6-flash';
+        
+        let prompt = "";
+        
+        if (type === 'pitch') {
+            prompt = `Tu es une application premium de résumés audios.
+Livre: ${bookTitle}
+Auteur: ${bookAuthors}
+Description: ${bookDesc}
+
+Écris un PITCH de 3 phrases très percutantes pour donner envie d'écouter le résumé complet de ce livre.
+Le ton doit être moderne, direct, et intrigant (façon teaser Netflix).
+Tu DOIS répondre EXCLUSIVEMENT avec un objet JSON valide, sans balises markdown.
+Format attendu:
+{ "pitch": "Ton pitch super captivant ici." }`;
+        } else {
+            prompt = `Tu es une application premium de résumés de livres.
+Livre: ${bookTitle}
+Auteur: ${bookAuthors}
+Description: ${bookDesc}
+
+Génère un podcast divisé en 3 à 5 chapitres.
+Tu DOIS répondre EXCLUSIVEMENT avec un objet JSON valide, sans balises markdown.
+Format attendu :
+{
+  "insights": [
+    {
+      "title": "Titre du chapitre",
+      "text": "Script oral d'environ 80-100 mots. Ton passionnant et direct."
+    }
+  ]
+}`;
+        }
         
         const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 contents: [{ parts: [{ text: prompt }] }],
                 generationConfig: { temperature: 0.7 }
@@ -31,10 +61,7 @@ export default async function handler(req, res) {
         const data = await response.json();
         const rawText = data.candidates[0].content.parts.map(p => p.text).join('');
         
-        // Clean markdown backticks if any
         const cleaned = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
-        
-        // Attempt to parse to ensure it's valid JSON before sending to client
         const parsedJson = JSON.parse(cleaned);
 
         return res.status(200).json(parsedJson);
