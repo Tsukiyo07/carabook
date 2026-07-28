@@ -142,31 +142,32 @@
                 </div>
                 <div class="modal-content">
                     <div class="book-tags">
-                        <span class="tag"><i class="fa-solid fa-clock"></i> ~10 min</span>
                         <span class="tag"><i class="fa-solid fa-headphones"></i> Audio premium</span>
                     </div>
                     <h1 id="modalTitle">Titre</h1>
                     <h3 id="modalAuthor">Auteur</h3>
                     
+                    <div class="pitch-box">
+                        <div id="pitchLoading" class="hidden">
+                            <div class="spinner-small"></div> <span>Création du pitch...</span>
+                        </div>
+                        <p id="modalPitch" class="book-pitch">Recherche en cours...</p>
+                    </div>
+                    
                     <div class="action-buttons">
                         <button id="generateBtn" class="primary-btn-large">
-                            <i class="fa-solid fa-play"></i> Lire & Écouter les Insights
+                            <i class="fa-solid fa-play"></i> Générer l'Audiobook
                         </button>
                         <div id="loadingStatus" class="loading-state hidden">
                             <div class="spinner"></div>
-                            <span id="statusText">Génération par l'IA en cours...</span>
+                            <span id="statusText">Rédaction du script en cours...</span>
                         </div>
-                    </div>
-
-                    <div class="about-section">
-                        <h4>À propos de ce livre</h4>
-                        <p id="modalDescription">Description...</p>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- READER MODAL -->
+        <!-- READER MODAL (PLAYLIST MODE) -->
         <div id="readerModal" class="full-modal hidden">
             <div class="reader-layout">
                 <header class="reader-header">
@@ -179,14 +180,19 @@
                     <button class="icon-btn"><i class="fa-solid fa-ellipsis-vertical"></i></button>
                 </header>
 
+                <div class="reader-progress-bar">
+                    <div class="progress-fill" id="globalProgressFill"></div>
+                </div>
+
                 <div class="reader-scroll-area">
-                    <div class="reader-content" id="readerContent">
-                        <p id="readerIntro" class="reader-intro"></p>
-                        <div id="insightsContainer" class="insights-list">
-                            <!-- Insights injected here -->
-                        </div>
-                        <div style="height: 150px;"></div> <!-- Space for sticky player -->
+                    <div class="playlist-header">
+                        <h2>Chapitres</h2>
+                        <span id="progressText" class="progress-text">0/0 lu</span>
                     </div>
+                    <div class="playlist-container" id="playlistContainer">
+                        <!-- Tracks injected here -->
+                    </div>
+                    <div style="height: 150px;"></div> <!-- Space for sticky player -->
                 </div>
             </div>
 
