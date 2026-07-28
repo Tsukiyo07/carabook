@@ -3,173 +3,194 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>CaraBook - Podcast IA</title>
-    <meta name="description" content="Générez un podcast audio immersif à partir de n'importe quel livre grâce à l'IA.">
+    <title>CaraBook - Résumés Audio</title>
+    <meta name="description" content="CaraBook : L'application premium pour lire et écouter les résumés des meilleurs livres.">
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <div id="app-container">
+    <div id="app-wrapper">
         
-        <!-- HEADER (Logo & Settings) -->
-        <header class="app-header">
+        <!-- DESKTOP SIDEBAR -->
+        <aside class="desktop-sidebar">
             <div class="logo">
                 <i class="fa-solid fa-book-open-reader"></i> CaraBook<span>.AI</span>
             </div>
-            <button id="settingsBtn" class="icon-btn" aria-label="Paramètres">
-                <i class="fa-solid fa-gear"></i>
-            </button>
-        </header>
-
-        <!-- VIEWS -->
-        <div class="views-container">
-            
-            <!-- VIEW 1: HOME -->
-            <div id="view-home" class="view active">
-                <div class="view-content">
-                    <div class="greeting">
-                        <h2>Bonjour 👋</h2>
-                        <p>Prêt à apprendre quelque chose de nouveau aujourd'hui ?</p>
-                    </div>
-
-                    <!-- Featured -->
-                    <div class="featured-book" id="featuredBook">
-                        <!-- Injected via JS -->
-                        <div class="skeleton-featured"></div>
-                    </div>
-
-                    <!-- Horizontal Carousels -->
-                    <div class="section-title">
-                        <h3>Tendances actuelles</h3>
-                        <a href="#" onclick="switchTab('search')">Tout voir</a>
-                    </div>
-                    <div class="books-carousel" id="trendingBooks">
-                        <div class="skeleton-card"></div>
-                        <div class="skeleton-card"></div>
-                        <div class="skeleton-card"></div>
-                    </div>
-
-                    <div class="section-title" style="margin-top:2rem;">
-                        <h3>Développement Personnel</h3>
-                    </div>
-                    <div class="books-carousel" id="selfHelpBooks">
-                        <div class="skeleton-card"></div>
-                        <div class="skeleton-card"></div>
-                        <div class="skeleton-card"></div>
-                    </div>
-                    
-                    <!-- padding bottom for nav bar -->
-                    <div style="height: 100px;"></div>
-                </div>
+            <nav class="sidebar-nav">
+                <a href="#" class="nav-item active" data-target="home">
+                    <i class="fa-solid fa-house"></i> <span>Découvrir</span>
+                </a>
+                <a href="#" class="nav-item" data-target="search">
+                    <i class="fa-solid fa-magnifying-glass"></i> <span>Recherche</span>
+                </a>
+                <a href="#" class="nav-item" data-target="library">
+                    <i class="fa-solid fa-bookmark"></i> <span>Bibliothèque</span>
+                </a>
+            </nav>
+            <div class="sidebar-footer">
+                <p>Propulsé par IA</p>
             </div>
+        </aside>
 
-            <!-- VIEW 2: SEARCH -->
-            <div id="view-search" class="view">
-                <div class="view-content">
-                    <h2 class="page-title">Recherche</h2>
-                    <div class="search-box">
-                        <i class="fa-solid fa-magnifying-glass"></i>
-                        <input type="text" id="searchInput" placeholder="Titre, auteur, mot-clé...">
-                        <button id="searchBtn">Chercher</button>
+        <!-- MAIN APP CONTAINER -->
+        <main id="app-container">
+            
+            <!-- MOBILE HEADER -->
+            <header class="mobile-header">
+                <div class="logo">
+                    <i class="fa-solid fa-book-open-reader"></i> CaraBook<span>.AI</span>
+                </div>
+            </header>
+
+            <!-- VIEWS -->
+            <div class="views-container">
+                
+                <!-- VIEW 1: HOME -->
+                <div id="view-home" class="view active">
+                    <div class="view-content">
+                        <div class="greeting">
+                            <h2>Pour vous aujourd'hui</h2>
+                            <p>Découvrez notre sélection quotidienne.</p>
+                        </div>
+
+                        <!-- Featured -->
+                        <div class="featured-book" id="featuredBook">
+                            <div class="skeleton-featured"></div>
+                        </div>
+
+                        <!-- Horizontal Carousels -->
+                        <div class="section-title">
+                            <h3>Tendances</h3>
+                            <a href="#" onclick="switchTab('search')">Tout voir</a>
+                        </div>
+                        <div class="books-carousel" id="trendingBooks">
+                            <div class="skeleton-card"></div><div class="skeleton-card"></div><div class="skeleton-card"></div>
+                        </div>
+
+                        <div class="section-title" style="margin-top:2rem;">
+                            <h3>Développement Personnel</h3>
+                        </div>
+                        <div class="books-carousel" id="selfHelpBooks">
+                            <div class="skeleton-card"></div><div class="skeleton-card"></div><div class="skeleton-card"></div>
+                        </div>
+                        
+                        <div class="bottom-padding"></div>
                     </div>
+                </div>
 
-                    <div id="searchResults" class="search-results-grid">
+                <!-- VIEW 2: SEARCH -->
+                <div id="view-search" class="view">
+                    <div class="view-content">
+                        <h2 class="page-title">Recherche</h2>
+                        <div class="search-box">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                            <input type="text" id="searchInput" placeholder="Titre, auteur, mot-clé...">
+                            <button id="searchBtn">Chercher</button>
+                        </div>
+
+                        <div id="searchResults" class="search-results-grid">
+                            <div class="empty-state">
+                                <i class="fa-solid fa-compass"></i>
+                                <p>Cherchez un livre pour générer ses insights.</p>
+                            </div>
+                        </div>
+                        
+                        <div class="bottom-padding"></div>
+                    </div>
+                </div>
+
+                <!-- VIEW 3: LIBRARY -->
+                <div id="view-library" class="view">
+                    <div class="view-content">
+                        <h2 class="page-title">Ma Bibliothèque</h2>
                         <div class="empty-state">
-                            <i class="fa-solid fa-compass"></i>
-                            <p>Cherchez un livre pour générer ses insights.</p>
+                            <i class="fa-solid fa-bookmark"></i>
+                            <p>Vos résumés enregistrés apparaîtront ici prochainement.</p>
                         </div>
                     </div>
-                    
-                    <!-- padding bottom for nav bar -->
-                    <div style="height: 100px;"></div>
                 </div>
-            </div>
 
-            <!-- VIEW 3: LIBRARY -->
-            <div id="view-library" class="view">
-                <div class="view-content">
-                    <h2 class="page-title">Ma Bibliothèque</h2>
-                    <div class="empty-state">
-                        <i class="fa-solid fa-bookmark"></i>
-                        <p>Vos résumés enregistrés apparaîtront ici.</p>
-                    </div>
-                </div>
-            </div>
+            </div> <!-- End Views Container -->
 
-        </div> <!-- End Views Container -->
+            <!-- MOBILE BOTTOM NAVIGATION -->
+            <nav class="bottom-nav">
+                <a href="#" class="nav-item active" data-target="home">
+                    <i class="fa-solid fa-house"></i>
+                    <span>Découvrir</span>
+                </a>
+                <a href="#" class="nav-item" data-target="search">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    <span>Recherche</span>
+                </a>
+                <a href="#" class="nav-item" data-target="library">
+                    <i class="fa-solid fa-bookmark"></i>
+                    <span>Bibliothèque</span>
+                </a>
+            </nav>
+        </main>
 
-        <!-- BOTTOM NAVIGATION -->
-        <nav class="bottom-nav">
-            <a href="#" class="nav-item active" data-target="home">
-                <i class="fa-solid fa-house"></i>
-                <span>Découvrir</span>
-            </a>
-            <a href="#" class="nav-item" data-target="search">
-                <i class="fa-solid fa-magnifying-glass"></i>
-                <span>Recherche</span>
-            </a>
-            <a href="#" class="nav-item" data-target="library">
-                <i class="fa-solid fa-bookmark"></i>
-                <span>Bibliothèque</span>
-            </a>
-        </nav>
-
-        <!-- BOOK DETAILS MODAL (Full screen overlay) -->
+        <!-- BOOK DETAILS MODAL -->
         <div id="bookModal" class="full-modal hidden">
             <button id="closeBookModal" class="floating-back-btn">
                 <i class="fa-solid fa-arrow-left"></i>
             </button>
-            <div class="modal-cover-header">
-                <img id="modalCover" src="" alt="Couverture">
-                <div class="modal-cover-gradient"></div>
-            </div>
-            <div class="modal-content">
-                <div class="book-tags">
-                    <span class="tag"><i class="fa-solid fa-clock"></i> 5 min read</span>
-                    <span class="tag"><i class="fa-solid fa-headphones"></i> Audio</span>
+            <div class="modal-layout">
+                <div class="modal-cover-header">
+                    <img id="modalCover" src="" alt="Couverture">
+                    <div class="modal-cover-gradient"></div>
                 </div>
-                <h1 id="modalTitle">Titre</h1>
-                <h3 id="modalAuthor">Auteur</h3>
-                
-                <div class="action-buttons">
-                    <button id="generateBtn" class="primary-btn-large">
-                        <i class="fa-solid fa-bolt"></i> Lire & Écouter les Insights
-                    </button>
-                    <div id="loadingStatus" class="loading-state hidden">
-                        <div class="spinner"></div>
-                        <span id="statusText">Génération par l'IA...</span>
+                <div class="modal-content">
+                    <div class="book-tags">
+                        <span class="tag"><i class="fa-solid fa-clock"></i> ~10 min</span>
+                        <span class="tag"><i class="fa-solid fa-headphones"></i> Audio premium</span>
                     </div>
-                </div>
+                    <h1 id="modalTitle">Titre</h1>
+                    <h3 id="modalAuthor">Auteur</h3>
+                    
+                    <div class="action-buttons">
+                        <button id="generateBtn" class="primary-btn-large">
+                            <i class="fa-solid fa-play"></i> Lire & Écouter les Insights
+                        </button>
+                        <div id="loadingStatus" class="loading-state hidden">
+                            <div class="spinner"></div>
+                            <span id="statusText">Génération par l'IA en cours...</span>
+                        </div>
+                    </div>
 
-                <div class="about-section">
-                    <h4>À propos de ce livre</h4>
-                    <p id="modalDescription">Description...</p>
+                    <div class="about-section">
+                        <h4>À propos de ce livre</h4>
+                        <p id="modalDescription">Description...</p>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- READER MODAL (Full screen overlay) -->
+        <!-- READER MODAL -->
         <div id="readerModal" class="full-modal hidden">
-            <header class="reader-header">
-                <button id="closeReaderBtn" class="icon-btn">
-                    <i class="fa-solid fa-chevron-down"></i>
-                </button>
-                <div class="reader-title-area">
-                    <span id="readerBookTitle">Titre du livre</span>
-                </div>
-                <button class="icon-btn"><i class="fa-solid fa-ellipsis-vertical"></i></button>
-            </header>
+            <div class="reader-layout">
+                <header class="reader-header">
+                    <button id="closeReaderBtn" class="icon-btn">
+                        <i class="fa-solid fa-chevron-down"></i>
+                    </button>
+                    <div class="reader-title-area">
+                        <span id="readerBookTitle">Titre du livre</span>
+                    </div>
+                    <button class="icon-btn"><i class="fa-solid fa-ellipsis-vertical"></i></button>
+                </header>
 
-            <div class="reader-content" id="readerContent">
-                <p id="readerIntro" class="reader-intro"></p>
-                <div id="insightsContainer" class="insights-list">
-                    <!-- Insights injected here -->
+                <div class="reader-scroll-area">
+                    <div class="reader-content" id="readerContent">
+                        <p id="readerIntro" class="reader-intro"></p>
+                        <div id="insightsContainer" class="insights-list">
+                            <!-- Insights injected here -->
+                        </div>
+                        <div style="height: 150px;"></div> <!-- Space for sticky player -->
+                    </div>
                 </div>
-                <div style="height: 120px;"></div> <!-- Space for sticky player -->
             </div>
 
-            <!-- Sticky Global Audio Player -->
+            <!-- STICKY GLOBAL AUDIO PLAYER -->
             <div id="stickyPlayer" class="sticky-player hidden">
                 <audio id="globalAudioElement" class="hidden"></audio>
                 
@@ -190,40 +211,7 @@
             </div>
         </div>
 
-    </div> <!-- End App Container -->
-
-    <!-- Settings Modal (Popup) -->
-    <div id="settingsModal" class="popup-overlay hidden">
-        <div class="popup-box">
-            <div class="popup-header">
-                <h2>Paramètres API</h2>
-                <button id="closeSettingsBtn" class="icon-btn"><i class="fa-solid fa-xmark"></i></button>
-            </div>
-            <div class="popup-body">
-                <div class="input-group">
-                    <label>Clé Google Gemini (Texte)</label>
-                    <input type="password" id="geminiKey" placeholder="AIzaSy...">
-                </div>
-                <div class="input-group">
-                    <label>Modèle Gemini</label>
-                    <select id="geminiModel">
-                        <option value="gemini-3.6-flash">gemini-3.6-flash (Recommandé)</option>
-                        <option value="gemini-3.5-flash">gemini-3.5-flash</option>
-                    </select>
-                </div>
-                <div class="input-group">
-                    <label>Clé ElevenLabs (Voix)</label>
-                    <input type="password" id="elevenlabsKey" placeholder="sk_...">
-                </div>
-                <div class="input-group">
-                    <label>Voix ElevenLabs (ID)</label>
-                    <input type="text" id="voiceSelect" value="IKne3meq5aSn9XLyUdCD" placeholder="Ex: Charlie">
-                </div>
-                <button id="saveSettingsBtn" class="primary-btn-large" style="margin-top: 1rem;">Enregistrer</button>
-                <p class="security-note" style="margin-top: 1rem; font-size:0.8rem; text-align:center; opacity:0.6;">Stocké localement sur votre appareil.</p>
-            </div>
-        </div>
-    </div>
+    </div> <!-- End App Wrapper -->
 
     <script src="app2.js"></script>
 </body>
