@@ -10,7 +10,7 @@ export default async function handler(req, res) {
 
     try {
         const { type, bookTitle, bookAuthors, bookDesc } = req.body;
-        const model = 'gemini-3.6-flash';
+        const model = 'gemini-1.5-flash';
         
         let prompt = "";
         
