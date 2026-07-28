@@ -29,16 +29,16 @@ Format attendu:
             prompt = `Tu es une application premium de résumés de livres.
 Livre: ${bookTitle}
 Auteur: ${bookAuthors}
-Description: ${bookDesc}
 
-Génère un podcast divisé en 3 à 5 chapitres.
+TA MISSION : Tu dois diviser ton résumé en respectant LE VRAI CHAPITRAGE (ou les vraies parties principales) de ce livre.
+Ne génère pas un résumé générique, mais base-toi sur la véritable structure de l'œuvre.
 Tu DOIS répondre EXCLUSIVEMENT avec un objet JSON valide, sans balises markdown.
 Format attendu :
 {
   "insights": [
     {
-      "title": "Titre du chapitre",
-      "text": "Script oral d'environ 80-100 mots. Ton passionnant et direct."
+      "title": "Nom du vrai Chapitre / Partie",
+      "text": "Script oral d'environ 80-100 mots résumant ce chapitre précis. Ton passionnant et direct."
     }
   ]
 }`;
