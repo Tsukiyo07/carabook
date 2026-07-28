@@ -1,6 +1,7 @@
 // App State
 let currentBook = null;
 let currentInsights = null;
+let playingBookContext = null; // To track which book is currently playing in background
 
 // UI Elements
 const views = document.querySelectorAll('.view');
@@ -8,12 +9,20 @@ const navItems = document.querySelectorAll('.nav-item');
 const searchInput = document.getElementById('searchInput');
 const searchBtn = document.getElementById('searchBtn');
 const searchResults = document.getElementById('searchResults');
+const libraryResults = document.getElementById('libraryResults');
+const libraryEmptyState = document.getElementById('libraryEmptyState');
+
 const bookModal = document.getElementById('bookModal');
 const readerModal = document.getElementById('readerModal');
+const stickyPlayer = document.getElementById('stickyPlayer');
+const bookmarkBtn = document.getElementById('bookmarkBtn');
+const generateBtn = document.getElementById('generateBtn');
+const resumeBtn = document.getElementById('resumeBtn');
 
 // Init
 window.addEventListener('DOMContentLoaded', () => {
     loadHomeData();
+    renderLibrary();
 });
 
 // --- Tab Navigation ---
@@ -25,6 +34,10 @@ function switchTab(targetId) {
         n.classList.remove('active');
         if (n.dataset.target === targetId) n.classList.add('active');
     });
+    
+    if (targetId === 'library') {
+        renderLibrary();
+    }
 }
 
 navItems.forEach(item => {
@@ -46,6 +59,7 @@ async function fetchCarouselData(query, containerId, isFeatured = false) {
         const res = await fetch(`https://openlibrary.org/search.json?q=${encodeURIComponent(query)}&limit=${isFeatured ? 1 : 10}&language=fre`);
         const data = await res.json();
         const container = document.getElementById(containerId);
+        if(!container) return;
         container.innerHTML = '';
         
         data.docs.forEach(item => {
@@ -115,26 +129,87 @@ async function doSearch(query) {
     } catch (e) {}
 }
 
-// --- Book Details & Pitch Logic ---
-async function openBookDetails(item, coverUrl, authors) {
+// --- Bookmark / Library Logic ---
+function getLibrary() {
+    return JSON.parse(localStorage.getItem('carabook_library') || '[]');
+}
+function toggleBookmark(book) {
+    let library = getLibrary();
+    const exists = library.find(b => b.title === book.title);
+    if (exists) {
+        library = library.filter(b => b.title !== book.title);
+        bookmarkBtn.style.color = "var(--text-secondary)";
+    } else {
+        library.push(book);
+        bookmarkBtn.style.color = "var(--accent)";
+    }
+    localStorage.setItem('carabook_library', JSON.stringify(library));
+}
+
+function checkBookmarkState(bookTitle) {
+    const library = getLibrary();
+    if (library.find(b => b.title === bookTitle)) {
+        bookmarkBtn.style.color = "var(--accent)";
+    } else {
+        bookmarkBtn.style.color = "var(--text-secondary)";
+    }
+}
+
+function renderLibrary() {
+    const library = getLibrary();
+    if (library.length === 0) {
+        libraryEmptyState.style.display = 'block';
+        Array.from(libraryResults.children).forEach(c => {
+            if (c !== libraryEmptyState) c.remove();
+        });
+        return;
+    }
+    
+    libraryEmptyState.style.display = 'none';
+    libraryResults.innerHTML = '';
+    
+    library.forEach(book => {
+        const card = document.createElement('div');
+        card.className = 'book-card-mini';
+        card.innerHTML = `
+            <img src="${book.coverUrl}" loading="lazy">
+            <h4>${book.title}</h4>
+            <p>${book.authors}</p>
+        `;
+        // Reconstruct basic item for openBookDetails
+        const fakeItem = { title: book.title, key: book.key };
+        card.onclick = () => openBookDetails(fakeItem, book.coverUrl, book.authors, book.description);
+        libraryResults.appendChild(card);
+    });
+}
+
+// --- Book Details ---
+async function openBookDetails(item, coverUrl, authors, preloadedDesc = null) {
     document.getElementById('modalCover').src = coverUrl;
     document.getElementById('modalTitle').textContent = item.title;
     document.getElementById('modalAuthor').textContent = authors;
     
     const pitchText = document.getElementById('modalPitch');
     const pitchLoading = document.getElementById('pitchLoading');
-    const generateBtn = document.getElementById('generateBtn');
     
     pitchText.textContent = "";
     pitchLoading.classList.remove('hidden');
-    generateBtn.classList.add('hidden'); // Hide btn until pitch is ready
+    generateBtn.classList.add('hidden');
+    resumeBtn.classList.add('hidden');
     
-    currentBook = { title: item.title, authors: authors, description: "" };
+    currentBook = { 
+        title: item.title, 
+        authors: authors, 
+        description: preloadedDesc || "", 
+        coverUrl: coverUrl,
+        key: item.key
+    };
+    checkBookmarkState(currentBook.title);
+    
     bookModal.classList.remove('hidden');
 
     try {
-        // Fetch raw description from internet (OpenLibrary)
-        if (item.key) {
+        if (!preloadedDesc && item.key) {
             const res = await fetch(`https://openlibrary.org${item.key}.json`);
             if (res.ok) {
                 const data = await res.json();
@@ -144,17 +219,33 @@ async function openBookDetails(item, coverUrl, authors) {
         
         pitchLoading.classList.add('hidden');
         pitchText.textContent = currentBook.description || "Aucun résumé trouvé sur internet pour ce livre. Vous pouvez tout de même générer l'audiobook complet.";
-        generateBtn.classList.remove('hidden');
+        
+        // If this book is currently playing or has generated insights in memory
+        if (playingBookContext && playingBookContext.book.title === currentBook.title) {
+            resumeBtn.classList.remove('hidden');
+        } else {
+            generateBtn.classList.remove('hidden');
+        }
         
     } catch(e) {
         pitchLoading.classList.add('hidden');
-        pitchText.textContent = "Erreur de chargement du résumé. Vous pouvez tout de même générer l'audiobook complet.";
+        pitchText.textContent = "Erreur de chargement. Vous pouvez tout de même générer l'audiobook complet.";
         generateBtn.classList.remove('hidden');
     }
 }
 
 document.getElementById('closeBookModal').addEventListener('click', () => {
     bookModal.classList.add('hidden');
+});
+
+bookmarkBtn.addEventListener('click', () => {
+    if (currentBook) toggleBookmark(currentBook);
+});
+
+resumeBtn.addEventListener('click', () => {
+    // We already have it playing/loaded, just open the reader
+    bookModal.classList.add('hidden');
+    readerModal.classList.remove('hidden');
 });
 
 // --- Playlist Generation (Full Audio) ---
@@ -177,23 +268,29 @@ document.getElementById('generateBtn').addEventListener('click', async () => {
         if (!response.ok) throw new Error("Erreur de génération serveur");
         
         const insightsData = await response.json();
+        
+        // Setup new playing context
+        playingBookContext = {
+            book: currentBook,
+            insights: insightsData.insights,
+            playingIndex: -1
+        };
         currentInsights = insightsData.insights;
         
-        buildPlaylist(currentInsights, currentBook);
+        buildPlaylist(playingBookContext.insights, playingBookContext.book);
         
         document.getElementById('loadingStatus').classList.add('hidden');
-        document.getElementById('generateBtn').classList.remove('hidden');
         
         bookModal.classList.add('hidden');
         readerModal.classList.remove('hidden');
         
-        // Auto-play the first track that isn't finished!
-        const savedProgress = loadProgress(currentBook.title);
-        const nextTrack = currentInsights.findIndex(i => !savedProgress.includes(i.title));
+        // Auto-play the first track that isn't finished
+        const savedProgress = loadProgress(playingBookContext.book.title);
+        const nextTrack = playingBookContext.insights.findIndex(i => !savedProgress.includes(i.title));
         if (nextTrack !== -1) {
             playTrack(nextTrack);
         } else {
-            playTrack(0); // Play from beginning if all finished
+            playTrack(0);
         }
         
     } catch (e) {
@@ -203,15 +300,32 @@ document.getElementById('generateBtn').addEventListener('click', async () => {
     }
 });
 
+// Reader Modal Close - Note: We do NOT pause audio!
 document.getElementById('closeReaderBtn').addEventListener('click', () => {
     readerModal.classList.add('hidden');
-    globalAudio.pause();
-    document.getElementById('stickyPlayer').classList.add('hidden');
+    // Global player remains visible on the main screen
 });
+
+// Clicking the global player info opens the reader for the current book
+document.getElementById('globalPlayerInfo').addEventListener('click', () => {
+    if (playingBookContext) {
+        // Ensure playlist reflects current context
+        currentBook = playingBookContext.book;
+        currentInsights = playingBookContext.insights;
+        buildPlaylist(currentInsights, currentBook);
+        
+        // Highlight active track visually
+        document.querySelectorAll('.track-item').forEach(el => el.classList.remove('active'));
+        const trackDiv = document.getElementById(`track-${playingBookContext.playingIndex}`);
+        if (trackDiv) trackDiv.classList.add('active');
+
+        readerModal.classList.remove('hidden');
+    }
+});
+
 
 // --- PLAYLIST UI & LOGIC ---
 const audioCache = new Map();
-let currentPlayingIndex = -1;
 
 function buildPlaylist(insights, book) {
     document.getElementById('readerBookTitle').textContent = book.title;
@@ -228,7 +342,6 @@ function buildPlaylist(insights, book) {
         div.className = `track-item ${isListened ? 'listened' : ''}`;
         div.id = `track-${i}`;
         
-        // Hidden text, just track UI
         div.innerHTML = `
             <div class="track-number">${i+1}</div>
             <div class="track-info">
@@ -260,24 +373,25 @@ function saveProgress(bookTitle, insightTitle) {
         localStorage.setItem(`carabook_progress_${bookTitle}`, JSON.stringify(progress));
     }
     
-    // Update UI
-    const trackDiv = document.getElementById(`track-${currentPlayingIndex}`);
-    if (trackDiv) {
-        trackDiv.classList.add('listened');
-        trackDiv.querySelector('.track-status i').className = 'fa-solid fa-circle-check';
+    if (playingBookContext && playingBookContext.book.title === bookTitle) {
+        const trackDiv = document.getElementById(`track-${playingBookContext.playingIndex}`);
+        if (trackDiv) {
+            trackDiv.classList.add('listened');
+            trackDiv.querySelector('.track-status i').className = 'fa-solid fa-circle-check';
+        }
+        updateGlobalProgress();
     }
-    updateGlobalProgress();
 }
 
 function updateGlobalProgress() {
-    if (!currentBook || !currentInsights) return;
-    const progress = loadProgress(currentBook.title);
+    if (!playingBookContext) return;
+    const progress = loadProgress(playingBookContext.book.title);
     const fill = document.getElementById('globalProgressFill');
     const text = document.getElementById('progressText');
     
-    const percentage = (progress.length / currentInsights.length) * 100;
-    fill.style.width = `${percentage}%`;
-    text.textContent = `${progress.length}/${currentInsights.length} lu`;
+    const percentage = (progress.length / playingBookContext.insights.length) * 100;
+    if(fill) fill.style.width = `${percentage}%`;
+    if(text) text.textContent = `${progress.length}/${playingBookContext.insights.length} lu`;
 }
 
 
@@ -287,10 +401,10 @@ const playPauseBtn = document.getElementById('playerPlayPauseBtn');
 const visualizer = document.getElementById('audioVisualizer');
 
 async function playTrack(index) {
-    if (index >= currentInsights.length) return; // End of playlist
+    if (!playingBookContext) return;
+    if (index >= playingBookContext.insights.length) return; 
     
-    const insight = currentInsights[index];
-    const stickyPlayer = document.getElementById('stickyPlayer');
+    const insight = playingBookContext.insights[index];
     
     // Update UI active track
     document.querySelectorAll('.track-item').forEach(el => el.classList.remove('active'));
@@ -298,15 +412,16 @@ async function playTrack(index) {
     if (trackDiv) trackDiv.classList.add('active');
     
     document.getElementById('playerInsightTitle').textContent = insight.title;
+    document.getElementById('playerBookTitle').textContent = playingBookContext.book.title;
     stickyPlayer.classList.remove('hidden');
     playPauseBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
     
-    if (currentPlayingIndex === index && !globalAudio.paused) {
+    if (playingBookContext.playingIndex === index && !globalAudio.paused) {
         globalAudio.pause();
         return;
     }
     
-    currentPlayingIndex = index;
+    playingBookContext.playingIndex = index;
     
     try {
         if (!audioCache.has(insight.title)) {
@@ -343,12 +458,12 @@ globalAudio.addEventListener('ended', () => {
     playPauseBtn.innerHTML = '<i class="fa-solid fa-play"></i>';
     visualizer.classList.add('hidden');
     
-    // Save progress when track finishes naturally
-    saveProgress(currentBook.title, currentInsights[currentPlayingIndex].title);
-    
-    // Auto-play next track
-    if (currentPlayingIndex + 1 < currentInsights.length) {
-        playTrack(currentPlayingIndex + 1);
+    if (playingBookContext) {
+        saveProgress(playingBookContext.book.title, playingBookContext.insights[playingBookContext.playingIndex].title);
+        
+        if (playingBookContext.playingIndex + 1 < playingBookContext.insights.length) {
+            playTrack(playingBookContext.playingIndex + 1);
+        }
     }
 });
 
