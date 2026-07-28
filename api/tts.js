@@ -1,5 +1,3 @@
-const googleTTS = require('google-tts-api');
-
 function chunkTextByWords(text, maxLength) {
     const chunks = [];
     let currentChunk = '';
@@ -32,12 +30,9 @@ export default async function handler(req, res) {
         const safeChunks = chunkTextByWords(text, 190).filter(c => c.trim().length > 0);
         
         const urls = safeChunks.map(chunk => {
+            const encodedText = encodeURIComponent(chunk);
             return {
-                url: googleTTS.getAudioUrl(chunk, {
-                    lang: 'fr',
-                    slow: false,
-                    host: 'https://translate.google.com',
-                }),
+                url: `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodedText}&tl=fr&client=tw-ob`,
                 shortText: chunk
             };
         });
@@ -45,6 +40,6 @@ export default async function handler(req, res) {
         res.status(200).json({ urls });
     } catch (error) {
         console.error("TTS Error:", error);
-        res.status(500).json({ error: "Erreur de génération vocale." });
+        res.status(500).json({ error: "Erreur de génération vocale: " + error.message });
     }
 }
