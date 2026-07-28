@@ -546,3 +546,114 @@ body {
         left: calc(5vw - 20px); /* Position it relatively close to the modal */
     }
 }
+/* --- PITCH SECTION --- */
+.pitch-box {
+    background: rgba(255,255,255,0.05);
+    border-radius: var(--radius-md);
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    border-left: 4px solid var(--accent);
+}
+.book-pitch {
+    font-size: 1.1rem;
+    line-height: 1.6;
+    color: #E2E8F0;
+    font-style: italic;
+}
+.spinner-small {
+    width: 16px; height: 16px;
+    border: 2px solid rgba(255,255,255,0.1); border-top-color: var(--accent);
+    border-radius: 50%; animation: spin 1s linear infinite;
+    display: inline-block;
+    margin-right: 8px;
+}
+
+/* --- PLAYLIST & PROGRESS --- */
+.reader-progress-bar {
+    width: 100%;
+    height: 4px;
+    background: rgba(255,255,255,0.1);
+    position: sticky;
+    top: 0;
+    z-index: 11;
+}
+.progress-fill {
+    height: 100%;
+    background: var(--accent-gradient);
+    width: 0%;
+    transition: width 0.3s ease;
+}
+
+.playlist-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 2rem 1.5rem 1rem;
+    max-width: 800px;
+    margin: 0 auto;
+}
+.playlist-header h2 { font-size: 1.8rem; }
+.progress-text { font-size: 0.9rem; color: var(--text-secondary); font-weight: 600; }
+
+.playlist-container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 0 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.track-item {
+    display: flex;
+    align-items: center;
+    padding: 1rem;
+    border-radius: var(--radius-md);
+    background: transparent;
+    transition: var(--transition);
+    cursor: pointer;
+    border: 1px solid transparent;
+}
+.track-item:hover {
+    background: rgba(255,255,255,0.05);
+}
+.track-item.active {
+    background: rgba(124, 58, 237, 0.15);
+    border: 1px solid rgba(124, 58, 237, 0.3);
+}
+
+.track-number {
+    width: 40px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-align: center;
+}
+.track-item.active .track-number { color: var(--accent); }
+
+.track-info {
+    flex: 1;
+    padding: 0 1rem;
+    overflow: hidden;
+}
+.track-info h4 {
+    font-size: 1.1rem;
+    margin-bottom: 0.2rem;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.track-item.active .track-info h4 { color: var(--accent); }
+.track-info p {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+.track-status {
+    width: 40px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: var(--text-secondary);
+}
+.track-item.listened .track-status {
+    color: #10B981;
+}
