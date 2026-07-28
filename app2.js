@@ -475,7 +475,7 @@ async function playTrack(index, startChunk = 0, resumeTime = 0) {
 
             const chunks = chunkText(insight.text, 190).filter(c => c.trim().length > 0);
             insight.audioUrls = chunks.map(chunk => ({
-                url: `/api/tts-proxy?text=${encodeURIComponent(chunk)}`,
+                url: `/api/tts?text=${encodeURIComponent(chunk)}`,
                 shortText: chunk
             }));
             
