@@ -454,27 +454,31 @@ async function playTrack(index, startChunk = 0, resumeTime = 0) {
 
     try {
         if (!insight.audioUrls) {
-            const res = await fetch('/api/tts', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ text: insight.text })
-            });
-            if (!res.ok) {
-                let errorMsg = "Erreur de synthèse vocale.";
-                try {
-                    const errText = await res.text();
-                    try {
-                        const errData = JSON.parse(errText);
-                        if (errData.error) errorMsg = errData.error;
-                    } catch (e2) {
-                        errorMsg = "Server returned non-JSON: " + res.status + " " + errText.substring(0, 100);
+            // Function to split text into chunks of ~190 chars to respect Google TTS limits
+            const chunkText = (text, maxLength) => {
+                const chunks = [];
+                let currentChunk = '';
+                const words = text.split(/\s+/);
+                for (const word of words) {
+                    if (!word) continue;
+                    if ((currentChunk + ' ' + word).trim().length <= maxLength) {
+                        currentChunk += (currentChunk ? ' ' : '') + word;
+                    } else {
+                        if (currentChunk) chunks.push(currentChunk);
+                        currentChunk = word;
                     }
-                } catch(e) {}
-                throw new Error(errorMsg);
-            }
-            const data = await res.json();
-            insight.audioUrls = data.urls;
+                }
+                if (currentChunk) chunks.push(currentChunk);
+                return chunks;
+            };
+
+            const chunks = chunkText(insight.text, 190).filter(c => c.trim().length > 0);
+            insight.audioUrls = chunks.map(chunk => ({
+                url: `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(chunk)}&tl=fr&client=tw-ob`,
+                shortText: chunk
+            }));
             
+            // Save immediately in local storage so we don't have to recompute
             localStorage.setItem('carabook_cache_' + playingBookContext.book.key, JSON.stringify(playingBookContext.insights));
         }
 
