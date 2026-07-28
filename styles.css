@@ -369,6 +369,7 @@ h2 {
     padding-bottom: 1rem;
     scroll-snap-type: x mandatory;
     scrollbar-width: none;
+    align-items: flex-start; /* Empêche les cartes de s'étirer verticalement */
 }
 .books-carousel::-webkit-scrollbar { display: none; }
 
@@ -382,7 +383,7 @@ h2 {
 }
 .book-card-mini img {
     width: 100%;
-    aspect-ratio: 2/3;
+    height: 220px;
     object-fit: cover;
     border-radius: 8px;
     margin-bottom: 1rem;
