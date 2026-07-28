@@ -133,7 +133,7 @@ async function openBookDetails(item, coverUrl, authors) {
     bookModal.classList.remove('hidden');
 
     try {
-        // Fetch raw description for the AI prompt
+        // Fetch raw description from internet (OpenLibrary)
         if (item.key) {
             const res = await fetch(`https://openlibrary.org${item.key}.json`);
             if (res.ok) {
@@ -142,28 +142,13 @@ async function openBookDetails(item, coverUrl, authors) {
             }
         }
         
-        // Generate Teaser Pitch via Backend
-        const pitchRes = await fetch('/api/generate', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-                type: 'pitch', 
-                bookTitle: currentBook.title, 
-                bookAuthors: currentBook.authors, 
-                bookDesc: currentBook.description 
-            })
-        });
-        
-        if (!pitchRes.ok) throw new Error("Erreur Pitch");
-        const pitchData = await pitchRes.json();
-        
         pitchLoading.classList.add('hidden');
-        pitchText.textContent = pitchData.pitch || "Découvrez les secrets de ce livre en générant l'audiobook complet.";
+        pitchText.textContent = currentBook.description || "Aucun résumé trouvé sur internet pour ce livre. Vous pouvez tout de même générer l'audiobook complet.";
         generateBtn.classList.remove('hidden');
         
     } catch(e) {
         pitchLoading.classList.add('hidden');
-        pitchText.textContent = "Résumé indisponible. Vous pouvez tout de même générer l'audiobook complet.";
+        pitchText.textContent = "Erreur de chargement du résumé. Vous pouvez tout de même générer l'audiobook complet.";
         generateBtn.classList.remove('hidden');
     }
 }
